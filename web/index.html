@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,41 +8,70 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body>
     <aside>
         <div class="sidebar-header">
-            <div class="logo-text">SAMBA<span>ADMIN</span></div>
+            <div class="logo-text">
+                <i data-lucide="shield" style="color: var(--accent-blue); width: 24px; height: 24px;"></i>
+                SAMBA<span>ADMIN</span>
+            </div>
         </div>
         <nav>
-            <div class="nav-item active" onclick="showTab('dashboard', this)">Дашборд</div>
-            <div class="nav-item" onclick="showTab('shares', this)">Общие ресурсы</div>
-            <div class="nav-item" onclick="showTab('users', this)">Пользователи</div>
-            <div class="nav-item" onclick="showTab('global', this)">Настройки сервера</div>
-            <div class="nav-item" onclick="showTab('logs', this)">Логи системы</div>
-            <div class="nav-item" onclick="showTab('audit', this)">Журнал аудита</div>
-            <div class="nav-item" onclick="showTab('automation', this)">Автоматизация</div>
-            <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid #e2e8f0; margin-top: 2rem; padding-top: 1.5rem;">Выход</div>
+            <div class="nav-item active" onclick="showTab('dashboard', this)">
+                <i data-lucide="layout-dashboard"></i> Дашборд
+            </div>
+            <div class="nav-item" onclick="showTab('shares', this)">
+                <i data-lucide="folder-tree"></i> Общие ресурсы
+            </div>
+            <div class="nav-item" onclick="showTab('users', this)">
+                <i data-lucide="users"></i> Пользователи
+            </div>
+            <div class="nav-item" onclick="showTab('global', this)">
+                <i data-lucide="settings-2"></i> Настройки сервера
+            </div>
+            <div class="nav-item" onclick="showTab('logs', this)">
+                <i data-lucide="terminal"></i> Логи системы
+            </div>
+            <div class="nav-item" onclick="showTab('audit', this)">
+                <i data-lucide="clipboard-list"></i> Журнал аудита
+            </div>
+            <div class="nav-item" onclick="showTab('automation', this)">
+                <i data-lucide="zap"></i> Автоматизация
+            </div>
+            
+            <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-bottom: 1rem;">
+                <i data-lucide="log-out"></i> Выход
+            </div>
         </nav>
-        <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569;">
-            Версия 1.1.0-stable
+        <div style="padding: 1.5rem; font-size: 0.75rem; color: #64748b; font-weight: 500;">
+            v1.2.0 Premium
         </div>
     </aside>
 
     <main>
         <header id="main-header">
-            <h1 id="page-title">Дашборд</h1>
+            <div>
+                <h1 id="page-title">Дашборд</h1>
+                <p id="page-subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">Мониторинг и управление Samba-сервером</p>
+            </div>
             <div style="display: flex; gap: 1rem; align-items: center;">
-                <button id="btn-apply" class="btn-action" style="background: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; display: none;" onclick="applyChanges()">
-                    Применить изменения
+                <button id="btn-apply" class="btn-action btn-apply-special" style="display: none;" onclick="applyChanges()">
+                    <i data-lucide="refresh-cw"></i> Применить изменения
                 </button>
-                <div style="display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px; border: 1px solid #e2e8f0;">
-                    <button class="btn-action" onclick="controlService('start')" style="padding: 4px 10px; font-size: 0.7rem; background: white; border: 1px solid #e2e8f0;">Start</button>
-                    <button class="btn-action" onclick="controlService('stop')" style="padding: 4px 10px; font-size: 0.7rem; background: white; border: 1px solid #e2e8f0;">Stop</button>
-                    <button class="btn-action" onclick="controlService('restart')" style="padding: 4px 10px; font-size: 0.7rem; background: white; border: 1px solid #e2e8f0;">Restart</button>
+                <div style="display: flex; background: rgba(255,255,255,0.5); backdrop-filter: blur(8px); padding: 6px; border-radius: 16px; gap: 6px; border: 1px solid var(--border-color);">
+                    <button class="btn-action btn-outline" onclick="controlService('start')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;">Start</button>
+                    <button class="btn-action btn-outline" onclick="controlService('stop')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;">Stop</button>
+                    <button class="btn-action btn-outline" onclick="controlService('restart')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;">Restart</button>
                 </div>
-                <div id="samba-status-badge" class="badge online">SMB: ONLINE</div>
+                <div id="samba-status-badge" class="badge online">
+                    <span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span>
+                    SMB: ONLINE
+                </div>
             </div>
         </header>
 
@@ -49,43 +79,58 @@
         <div id="tab-dashboard" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Активные сессии</div>
+                    <div class="stat-label"><i data-lucide="activity" style="width: 16px;"></i> Активные сессии</div>
                     <div class="stat-value" id="session-count">0</div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: #10b981; font-weight: 600;">↑ 12% с прошлого часа</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Файлов открыто</div>
+                    <div class="stat-label"><i data-lucide="file-text" style="width: 16px;"></i> Файлов открыто</div>
                     <div class="stat-value" id="file-count">0</div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-secondary);">Текущая нагрузка на FS</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Версия Samba</div>
-                    <div class="stat-value mono" id="samba-version" style="font-size: 1rem;">-</div>
+                    <div class="stat-label"><i data-lucide="cpu" style="width: 16px;"></i> Версия Samba</div>
+                    <div class="stat-value mono" id="samba-version" style="font-size: 1.1rem;">-</div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--accent-blue); font-weight: 600;">System Core</div>
                 </div>
             </div>
-            
-            <div class="content-panel" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
-                <div class="panel-header" style="border: none;">
+
+            <div class="content-panel" style="border-left: 6px solid #f59e0b;">
+                <div class="panel-header" style="border: none; padding-bottom: 0.5rem;">
                     <div>
-                        <h2 style="color: #b45309;">Обслуживание системы</h2>
-                        <p style="font-size: 0.75rem; color: #d97706; margin-top: 2px;">Очистка временных файлов и всех сетевых корзин</p>
+                        <h2 style="color: #b45309; display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="trash-2"></i> Обслуживание системы
+                        </h2>
+                        <p style="font-size: 0.85rem; color: #d97706; margin-top: 4px;">Очистка временных файлов и всех сетевых корзин</p>
                     </div>
-                    <button class="btn-action" onclick="clearRecycleBins()" style="background: #f59e0b; color: white; border: none; padding: 0.6rem 1.2rem;">
-                        Очистить все корзины
+                    <button class="btn-action btn-success" style="background: #f59e0b;" onclick="clearRecycleBins()">
+                        <i data-lucide="eraser"></i> Очистить все корзины
                     </button>
                 </div>
             </div>
 
             <div class="content-panel">
-                <div class="panel-header"><h2>Использование дискового пространства</h2></div>
-                <div id="disk-usage-container" style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div class="panel-header">
+                    <h2><i data-lucide="hard-drive" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> Использование дискового пространства</h2>
+                </div>
+                <div id="disk-usage-container" style="padding: 2rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem;">
                     <!-- JS populate -->
                 </div>
             </div>
 
             <div class="content-panel">
-                <div class="panel-header"><h2>Текущие подключения</h2></div>
-                <div class="table-container" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <div class="panel-header">
+                    <h2><i data-lucide="users" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> Текущие подключения</h2>
+                </div>
+                <div class="table-container">
                     <table>
-                        <thead><tr><th>Пользователь</th><th>Удаленный хост</th><th>Протокол</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Удаленный хост</th>
+                                <th>Протокол</th>
+                            </tr>
+                        </thead>
                         <tbody id="sessions-table-body"></tbody>
                     </table>
                 </div>
@@ -94,29 +139,48 @@
 
         <!-- Вкладка Ресурсы -->
         <div id="tab-shares" class="tab-content" style="display:none;">
-            <header>
-                <h1>Управление ресурсами</h1>
-                <button class="btn-action" style="background: #2563eb; color: white; border: none;" onclick="openShareModal()">+ Добавить ресурс</button>
-            </header>
             <div class="content-panel">
-                <div class="panel-header"><h2>Список общих папок</h2></div>
-                <table>
-                    <thead><tr><th>Имя</th><th>Путь</th><th>Корзина</th><th>Действия</th></tr></thead>
-                    <tbody id="shares-table-body"></tbody>
-                </table>
+                <div class="panel-header">
+                    <h2>Список общих папок</h2>
+                    <button class="btn-action btn-primary" onclick="openShareModal()">
+                        <i data-lucide="plus"></i> Добавить ресурс
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Имя</th>
+                                <th>Путь</th>
+                                <th>Корзина</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shares-table-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
         <!-- Вкладка Пользователи -->
         <div id="tab-users" class="tab-content" style="display:none;">
-            <header>
-                <h1>Управление пользователями</h1>
-                <button class="btn-action" style="background: #2563eb; color: white; border: none;" onclick="openUserModal()">+ Добавить пользователя</button>
-            </header>
             <div class="content-panel">
-                <div class="panel-header"><h2>Зарегистрированные аккаунты</h2></div>
-                <div class="table-container" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <div class="panel-header">
+                    <h2>Зарегистрированные аккаунты</h2>
+                    <button class="btn-action btn-primary" onclick="openUserModal()">
+                        <i data-lucide="user-plus"></i> Добавить пользователя
+                    </button>
+                </div>
+                <div class="table-container">
                     <table>
-                        <thead><tr><th>Логин</th><th>UID</th><th>Полное имя</th><th>Действия</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Логин</th>
+                                <th>UID</th>
+                                <th>Полное имя</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
                         <tbody id="users-table-body"></tbody>
                     </table>
                 </div>
@@ -125,120 +189,174 @@
 
         <!-- Вкладка Глобальные настройки -->
         <div id="tab-global" class="tab-content" style="display:none;">
-            <header>
-                <h1>Настройки сервера Samba</h1>
-                <button type="submit" form="global-form" class="btn-action" style="background: #10b981; color: white; border: none;">Сохранить все настройки</button>
-            </header>
-            <form id="global-form">
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
-                    <!-- Базовые и Сеть -->
-                    <div class="content-panel">
-                        <div class="panel-header"><h2>Сеть и Идентификация</h2></div>
-                        <div style="padding: 1.5rem;">
-                            <div class="form-group"><label>Workgroup</label><input type="text" name="workgroup"></div>
-                            <div class="form-group"><label>Netbios Name</label><input type="text" name="netbios name"></div>
-                            <div class="form-group"><label>Server String</label><input type="text" name="server string"></div>
-                            <div class="form-group"><label>Interfaces</label><input type="text" name="interfaces" placeholder="lo eth0"></div>
-                            <div class="form-group"><label>Bind Interfaces Only</label>
-                                <select name="bind interfaces only"><option value="yes">Yes</option><option value="no">No</option></select>
-                            </div>
-                        </div>
+            <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                <!-- Внутренняя навигация настроек -->
+                <div class="content-panel" style="width: 280px; flex-shrink: 0; position: sticky; top: 0; padding: 1rem;">
+                    <div class="settings-nav-item active" onclick="showSettingsSection('net', this)">
+                        <i data-lucide="globe"></i> Сеть и ID
                     </div>
-
-                    <!-- Безопасность -->
-                    <div class="content-panel">
-                        <div class="panel-header"><h2>Безопасность</h2></div>
-                        <div style="padding: 1.5rem;">
-                            <div class="form-group"><label>Security Mode</label>
-                                <select name="security"><option value="user">User</option><option value="ads">ADS (Active Directory)</option><option value="domain">Domain</option></select>
-                            </div>
-                            <div class="form-group"><label>Map to Guest</label>
-                                <select name="map to guest"><option value="Never">Never</option><option value="Bad User">Bad User</option></select>
-                            </div>
-                            <div class="form-group"><label>Guest Account</label><input type="text" name="guest account" placeholder="nobody"></div>
-                            <div class="form-group"><label>Hosts Allow (Белый список IP)</label><input type="text" name="hosts allow" placeholder="192.168.1. 127."></div>
-                        </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('sec', this)">
+                        <i data-lucide="lock"></i> Безопасность
                     </div>
-
-                    <!-- Производительность -->
-                    <div class="content-panel">
-                        <div class="panel-header"><h2>Производительность и AIO</h2></div>
-                        <div style="padding: 1.5rem;">
-                            <div class="form-group"><label>Use Sendfile</label>
-                                <select name="use sendfile"><option value="yes">Yes</option><option value="no">No</option></select>
-                            </div>
-                            <div class="form-group"><label>AIO Read Size</label><input type="text" name="aio read size" placeholder="1"></div>
-                            <div class="form-group"><label>AIO Write Size</label><input type="text" name="aio write size" placeholder="1"></div>
-                            <div class="form-group"><label>Socket Options</label><input type="text" name="socket options" placeholder="TCP_NODELAY"></div>
-                        </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('perf', this)">
+                        <i data-lucide="zap"></i> Производительность
                     </div>
-
-                    <!-- Совместимость -->
-                    <div class="content-panel">
-                        <div class="panel-header"><h2>Совместимость и Протоколы</h2></div>
-                        <div style="padding: 1.5rem;">
-                            <div class="form-group"><label>Min Protocol</label>
-                                <select name="server min protocol"><option value="SMB2_10">SMB2_10</option><option value="SMB2">SMB2</option><option value="NT1">NT1</option></select>
-                            </div>
-                            <div class="form-group"><label>Max Protocol</label>
-                                <select name="server max protocol"><option value="SMB3_11">SMB3_11</option><option value="SMB3">SMB3</option></select>
-                            </div>
-                            <div class="form-group"><label>Unix Charset</label><input type="text" name="unix charset" value="UTF-8"></div>
-                            <div class="form-group"><label>Dos Charset</label><input type="text" name="dos charset" value="CP866"></div>
-                        </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('proto', this)">
+                        <i data-lucide="layers"></i> Протоколы
                     </div>
-
-                    <!-- Active Directory -->
-                    <div class="content-panel">
-                        <div class="panel-header"><h2>Active Directory / Domain</h2></div>
-                        <div style="padding: 1.5rem;">
-                            <div class="form-group"><label>Realm (Domain Name)</label><input type="text" name="realm" placeholder="EXAMPLE.COM"></div>
-                            <div class="form-group"><label>Kerberos Method</label><input type="text" name="kerberos method" placeholder="secrets and keytab"></div>
-                            <div class="form-group"><label>Winbind Enum Users</label>
-                                <select name="winbind enum users"><option value="yes">Yes</option><option value="no">No</option></select>
-                            </div>
-                        </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('ad', this)">
+                        <i data-lucide="database"></i> Active Directory
                     </div>
-
-                    <!-- Логирование -->
-                    <div class="content-panel">
-                        <div class="panel-header"><h2>Логи и Отладка</h2></div>
-                        <div style="padding: 1.5rem;">
-                            <div class="form-group"><label>Log Level</label>
-                                <select name="log level"><option value="1">1 (Стандарт)</option><option value="2">2</option><option value="3">3 (Debug)</option></select>
-                            </div>
-                            <div class="form-group"><label>Max Log Size (KB)</label><input type="number" name="max log size" value="1000"></div>
-                        </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('debug', this)">
+                        <i data-lucide="bug"></i> Логи и Отладка
                     </div>
                 </div>
-            </form>
-        </div>
-        <!-- Вкладка Логи -->
-        <div id="tab-logs" class="tab-content" style="display:none;">
-            <header>
-                <h1>Логи системы (smbd)</h1>
-                <div style="display: flex; gap: 1rem;">
-                    <button class="btn-action" onclick="loadLogs()" style="background: #3b82f6; color: white; border: none;">Обновить</button>
-                    <button class="btn-action" onclick="document.getElementById('log-output').innerText = ''">Очистить вид</button>
-                </div>
-            </header>
-            <div class="content-panel" style="background: #0f172a; border: none;">
-                <pre id="log-output" style="color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 1.5rem; white-space: pre-wrap; height: 65vh; overflow-y: auto; margin: 0;"></pre>
+
+                <!-- Контент настроек -->
+                <form id="global-form" style="flex-grow: 1;">
+                    <div id="sec-net" class="settings-section">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="globe"></i> Сеть и Идентификация</h2></div>
+                            <div style="padding: 2rem;">
+                                <div class="form-group"><label>Workgroup</label><input type="text" name="workgroup"></div>
+                                <div class="form-group"><label>Netbios Name</label><input type="text" name="netbios name"></div>
+                                <div class="form-group"><label>Server String</label><input type="text" name="server string"></div>
+                                <div class="form-group"><label>Interfaces</label><input type="text" name="interfaces" placeholder="lo eth0"></div>
+                                <div class="form-group"><label>Bind Interfaces Only</label>
+                                    <select name="bind interfaces only">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sec-sec" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="lock"></i> Безопасность</h2></div>
+                            <div style="padding: 2rem;">
+                                <div class="form-group"><label>Security Mode</label>
+                                    <select name="security">
+                                        <option value="user">User</option>
+                                        <option value="ads">ADS (Active Directory)</option>
+                                        <option value="domain">Domain</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Map to Guest</label>
+                                    <select name="map to guest">
+                                        <option value="Never">Never</option>
+                                        <option value="Bad User">Bad User</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Guest Account</label><input type="text" name="guest account" placeholder="nobody"></div>
+                                <div class="form-group"><label>Hosts Allow (Белый список IP)</label><input type="text" name="hosts allow" placeholder="192.168.1. 127."></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sec-perf" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="zap"></i> Производительность и AIO</h2></div>
+                            <div style="padding: 2rem;">
+                                <div class="form-group"><label>Use Sendfile</label>
+                                    <select name="use sendfile">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>AIO Read Size</label><input type="text" name="aio read size" placeholder="1"></div>
+                                <div class="form-group"><label>AIO Write Size</label><input type="text" name="aio write size" placeholder="1"></div>
+                                <div class="form-group"><label>Socket Options</label><input type="text" name="socket options" placeholder="TCP_NODELAY"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sec-proto" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="layers"></i> Совместимость и Протоколы</h2></div>
+                            <div style="padding: 2rem;">
+                                <div class="form-group"><label>Min Protocol</label>
+                                    <select name="server min protocol">
+                                        <option value="SMB2_10">SMB2_10</option>
+                                        <option value="SMB2">SMB2</option>
+                                        <option value="NT1">NT1</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Max Protocol</label>
+                                    <select name="server max protocol">
+                                        <option value="SMB3_11">SMB3_11</option>
+                                        <option value="SMB3">SMB3</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Unix Charset</label><input type="text" name="unix charset" value="UTF-8"></div>
+                                <div class="form-group"><label>Dos Charset</label><input type="text" name="dos charset" value="CP866"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sec-ad" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="database"></i> Active Directory / Domain</h2></div>
+                            <div style="padding: 2rem;">
+                                <div class="form-group"><label>Realm (Domain Name)</label><input type="text" name="realm" placeholder="EXAMPLE.COM"></div>
+                                <div class="form-group"><label>Kerberos Method</label><input type="text" name="kerberos method" placeholder="secrets and keytab"></div>
+                                <div class="form-group"><label>Winbind Enum Users</label>
+                                    <select name="winbind enum users">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sec-debug" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="bug"></i> Логи и Отладка</h2></div>
+                            <div style="padding: 2rem;">
+                                <div class="form-group"><label>Log Level</label>
+                                    <select name="log level">
+                                        <option value="1">1 (Стандарт)</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3 (Debug)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Max Log Size (KB)</label><input type="number" name="max log size" value="1000"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="position: sticky; bottom: 2rem; display: flex; justify-content: flex-end; z-index: 100; pointer-events: none;">
+                        <button type="submit" class="btn-action btn-success" style="padding: 1rem 2rem; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); pointer-events: auto;">
+                            <i data-lucide="save"></i> Сохранить все настройки
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <!-- Вкладка Аудит -->
-        <div id="tab-audit" class="tab-content" style="display:none;">
-            <header>
-                <h1>Журнал аудита</h1>
-                <div style="display: flex; gap: 1rem;">
-                    <button class="btn-action" onclick="loadAuditLogs()" style="background: #3b82f6; color: white; border: none;">Обновить</button>
-                    <button class="btn-action" onclick="document.getElementById('audit-table-body').innerHTML = ''">Очистить вид</button>
+        <div id="tab-logs" class="tab-content" style="display:none;">
+            <div class="content-panel" style="background: #0f172a; border: none; border-radius: 24px;">
+                <div class="panel-header" style="border-color: rgba(255,255,255,0.1);">
+                    <h2 style="color: #fff;">Логи системы</h2>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn-action btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border: none;" onclick="loadLogs()">
+                            <i data-lucide="refresh-cw"></i> Обновить
+                        </button>
+                    </div>
                 </div>
-            </header>
+                <pre id="log-output" style="color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 2rem; white-space: pre-wrap; height: 60vh; overflow-y: auto; margin: 0;"></pre>
+            </div>
+        </div>
+        
+        <div id="tab-audit" class="tab-content" style="display:none;">
             <div class="content-panel">
-                <div class="panel-header"><h2>Последние действия пользователей</h2></div>
-                <div class="table-container" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <div class="panel-header">
+                    <h2>Журнал аудита</h2>
+                    <button class="btn-action btn-outline" onclick="loadAuditLogs()"><i data-lucide="refresh-cw"></i> Обновить</button>
+                </div>
+                <div class="table-container">
                     <table>
                         <thead>
                             <tr>
@@ -249,38 +367,34 @@
                                 <th>Файл / Объект</th>
                             </tr>
                         </thead>
-                        <tbody id="audit-table-body">
-                            <!-- JS populate -->
-                        </tbody>
+                        <tbody id="audit-table-body"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Вкладка Автоматизация -->
         <div id="tab-automation" class="tab-content" style="display:none;">
-            <header>
-                <h1>Автоматизация и обслуживание</h1>
-                <button class="btn-action" style="background: #10b981; color: white; border: none;" onclick="saveAutomationSettings()">Сохранить настройки</button>
-            </header>
-            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                 <div class="content-panel">
-                    <div class="panel-header"><h2>Сетевая корзина</h2></div>
-                    <div style="padding: 1.5rem;">
+                    <div class="panel-header">
+                        <h2><i data-lucide="trash-2"></i> Сетевая корзина</h2>
+                    </div>
+                    <div style="padding: 2rem;">
                         <div class="form-group">
-                            <label>Авто-очистка (удалять файлы старше X дней)</label>
+                            <label>Авто-очистка (дни)</label>
                             <input type="number" id="auto-recycle-days" value="14">
-                            <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem;">0 — отключить автоматическую очистку</p>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;">0 — отключить очистку</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="content-panel">
-                    <div class="panel-header"><h2>Теневые копии (Snapshots)</h2></div>
-                    <div style="padding: 1.5rem;">
+                    <div class="panel-header">
+                        <h2><i data-lucide="history"></i> Теневые копии</h2>
+                    </div>
+                    <div style="padding: 2rem;">
                         <div class="form-group">
-                            <label>Периодичность снимков</label>
+                            <label>Интервал снимков</label>
                             <select id="auto-snap-interval">
                                 <option value="none">Отключено</option>
                                 <option value="hourly">Раз в час</option>
@@ -288,12 +402,16 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Сколько копий хранить</label>
+                            <label>Хранить копий</label>
                             <input type="number" id="auto-snap-keep" value="10">
                         </div>
-                        <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem;">Снимки используют жесткие ссылки (hardlinks) и экономят место.</p>
                     </div>
                 </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                <button class="btn-action btn-success" onclick="saveAutomationSettings()">
+                    <i data-lucide="check-circle"></i> Применить настройки
+                </button>
             </div>
         </div>
     </main>
@@ -301,101 +419,70 @@
     <!-- Модальное окно ресурса -->
     <div id="share-modal" class="modal">
         <div class="modal-content">
-            <div class="panel-header">
-                <h2 id="modal-title">Новый ресурс</h2>
-                <span class="close" onclick="closeShareModal()">&times;</span>
+            <div class="panel-header" style="border: none; padding: 2rem 2rem 1rem 2rem;">
+                <h2 id="modal-title">Настройка ресурса</h2>
+                <div class="close" onclick="closeShareModal()">&times;</div>
             </div>
-            <form id="share-form" style="padding: 1.5rem;">
-                <div class="form-group">
-                    <label>Имя ресурса (в smb.conf)</label>
-                    <input type="text" id="share-name" placeholder="Например: Public" required>
-                </div>
-                <div class="form-group">
-                    <label>Путь к папке</label>
-                    <input type="text" id="share-path" placeholder="/srv/samba/public" required>
-                </div>
-                <div class="form-group">
-                    <label>Комментарий</label>
-                    <input type="text" id="share-comment" placeholder="Публичная папка">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                        <input type="checkbox" id="share-readonly" checked> Только чтение (read only)
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                        <input type="checkbox" id="share-guest" checked> Гостевой доступ (guest ok)
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                        <input type="checkbox" id="share-browseable" checked> Видимость (browseable)
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                        <input type="checkbox" id="share-recycle"> Корзина (vfs recycle)
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                        <input type="checkbox" id="share-audit"> Аудит действий (full_audit)
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                        <input type="checkbox" id="share-shadow"> Теневые копии (shadow_copy2)
-                    </label>
-                </div>
-                <div id="recycle-info" style="display:none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
-                    <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 600;">Детальные настройки корзины:</p>
-                    <div class="form-group">
-                        <label style="font-size: 0.7rem;">Путь (Repository)</label>
-                        <input type="text" id="share-recycle-repo" placeholder=".recycle/%U" style="font-size: 0.8rem; padding: 0.5rem;">
-                    </div>
-                    <div class="form-group">
-                        <label style="font-size: 0.7rem;">Исключить файлы (Exclude)</label>
-                        <input type="text" id="share-recycle-exclude" placeholder="*.tmp *.bak" style="font-size: 0.8rem; padding: 0.5rem;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label style="font-size: 0.7rem;">Исключить папки (Exclude Dir)</label>
-                        <input type="text" id="share-recycle-exclude-dir" placeholder="/tmp /cache" style="font-size: 0.8rem; padding: 0.5rem;">
-                    </div>
-                </div>
 
-                <div id="audit-info" style="display:none; margin-top: 1rem; padding: 1rem; background: #fffbeb; border-radius: 8px; border: 1px dashed #f59e0b;">
-                    <p style="font-size: 0.75rem; color: #b45309; margin-bottom: 0.75rem; font-weight: 600;">События для аудита:</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <input type="checkbox" id="audit-unlink" checked> Удаление (unlink)
-                        </label>
-                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <input type="checkbox" id="audit-rename" checked> Переименование
-                        </label>
-                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <input type="checkbox" id="audit-mkdir" checked> Создание папок
-                        </label>
-                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <input type="checkbox" id="audit-open"> Открытие (open)
-                        </label>
-                    </div>
-                </div>
+            <div class="modal-tabs">
+                <div class="modal-tab active" onclick="showModalTab('general')">Основные</div>
+                <div class="modal-tab" onclick="showModalTab('access')">Доступ и Права</div>
+                <div class="modal-tab" onclick="showModalTab('automation-tab')">Автоматизация</div>
+            </div>
 
-                <details style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
-                    <summary style="cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6;">Дополнительные параметры (маски, права)</summary>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group">
-                            <label>Create Mask</label>
-                            <input type="text" id="share-create-mask" placeholder="0664">
-                        </div>
-                        <div class="form-group">
-                            <label>Directory Mask</label>
-                            <input type="text" id="share-dir-mask" placeholder="0775">
+            <form id="share-form" style="display: flex; flex-direction: column; flex-grow: 1;">
+                <div class="modal-tab-container" style="padding: 2rem; flex-grow: 1; overflow-y: auto;">
+                    <div id="m-tab-general" class="m-tab-content">
+                        <div class="form-group"><label>Имя ресурса</label><input type="text" id="share-name" required></div>
+                        <div class="form-group"><label>Путь к папке</label><input type="text" id="share-path" required></div>
+                        <div class="form-group"><label>Комментарий</label><input type="text" id="share-comment"></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <label class="switch-label"><input type="checkbox" id="share-browseable" checked> <span>Видимость</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-readonly"> <span>Только чтение</span></label>
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="share-inherit-acls" checked> Inherit ACLs
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="share-guest-only"> Guest Only
-                        </label>
+                    <div id="m-tab-access" class="m-tab-content" style="display:none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <label class="switch-label"><input type="checkbox" id="share-guest" checked> <span>Гостевой доступ</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-guest-only"> <span>Только гости</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-inherit-acls" checked> <span>Наследование ACL</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-audit"> <span>Аудит действий</span></label>
+                        </div>
+
+                        <div id="audit-info" style="display:none; margin-top: 1.5rem; padding: 1.5rem; background: rgba(245, 158, 11, 0.05); border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-unlink" checked> Удаление</label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-rename" checked> Переименование</label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-mkdir" checked> Создание папок</label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-open"> Открытие</label>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="form-group"><label>Маска файлов</label><input type="text" id="share-create-mask" value="0664"></div>
+                            <div class="form-group"><label>Маска папок</label><input type="text" id="share-dir-mask" value="0775"></div>
+                        </div>
                     </div>
-                </details>
-                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action" onclick="closeShareModal()">Отмена</button>
-                    <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Сохранить</button>
+                    <div id="m-tab-automation-tab" class="m-tab-content" style="display:none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                            <label class="switch-label"><input type="checkbox" id="share-recycle"> <span>Сетевая корзина</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-shadow"> <span>Теневые копии</span></label>
+                        </div>
+
+                        <div id="recycle-info" style="display:none; padding: 1.5rem; background: #f8fafc; border-radius: 16px; border: 1px solid var(--border-color);">
+                            <div class="form-group"><label>Путь к корзине</label><input type="text" id="share-recycle-repo"></div>
+                            <div class="form-group"><label>Исключить файлы</label><input type="text" id="share-recycle-exclude"></div>
+                            <div class="form-group"><label>Исключить папки</label><input type="text" id="share-recycle-exclude-dir"></div>
+                        </div>
+
+                        <div id="shadow-info" style="display:none; margin-top: 1rem; font-size: 0.85rem; color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
+                            <i data-lucide="info" style="width: 14px; vertical-align: middle; margin-right: 4px;"></i> Снимки создаются по глобальному расписанию.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: 1.5rem 2rem; background: #f8fafc; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid #f1f5f9;">
+                    <button type="button" class="btn-action btn-outline" onclick="closeShareModal()">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary">Сохранить</button>
                 </div>
             </form>
         </div>
@@ -406,49 +493,64 @@
         <div class="modal-content" style="max-width: 450px;">
             <div class="panel-header">
                 <h2 id="user-modal-title">Новый пользователь</h2>
-                <span class="close" onclick="closeUserModal()">&times;</span>
+                <div class="close" onclick="closeUserModal()">&times;</div>
             </div>
-            <form id="user-form" style="padding: 1.5rem;">
-                <div class="form-group">
-                    <label>Имя пользователя (Login)</label>
-                    <input type="text" id="user-username" required placeholder="Например: ivan">
-                </div>
-                <div class="form-group">
-                    <label>Пароль Samba</label>
-                    <input type="password" id="user-password" required placeholder="Минимум 6 символов">
-                </div>
-                <p style="font-size: 0.75rem; color: #64748b; margin-top: 1rem;">
-                    💡 Пользователь должен существовать в операционной системе Linux.
-                </p>
+            <form id="user-form" style="padding: 2rem;">
+                <div class="form-group"><label>Имя пользователя</label><input type="text" id="user-username" required></div>
+                <div class="form-group"><label>Пароль Samba</label><input type="password" id="user-password" required autocomplete="new-password"></div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action" onclick="closeUserModal()">Отмена</button>
-                    <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Сохранить</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closeUserModal()">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary">Создать</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Модальное окно: Пароль -->
+    <!-- Модальное окно: Смена пароля -->
     <div id="password-modal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 450px;">
             <div class="panel-header">
                 <h2>Смена пароля</h2>
-                <span class="close" onclick="closePasswordModal()">&times;</span>
+                <div class="close" onclick="closePasswordModal()">&times;</div>
             </div>
-            <form id="password-form" style="padding: 1.5rem;">
+            <form id="password-form" style="padding: 2rem;">
                 <input type="hidden" id="pass-username">
                 <div class="form-group">
-                    <label>Новый пароль для <span id="pass-user-display" style="font-weight:bold; color: #3b82f6;"></span></label>
-                    <input type="password" id="new-password" required>
+                    <label>Новый пароль для <span id="pass-user-display" style="font-weight:bold; color: var(--accent-blue);"></span></label>
+                    <input type="password" id="new-password" required autocomplete="new-password">
                 </div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action" onclick="closePasswordModal()">Отмена</button>
-                    <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Обновить</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closePasswordModal()">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary">Обновить</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Инициализация иконок Lucide
+        lucide.createIcons();
+        
+        // Переопределение функции showTab для обновления иконок при смене вкладки
+        const originalShowTab = showTab;
+        window.showTab = function(tabName, element) {
+            originalShowTab(tabName, element);
+            lucide.createIcons();
+            
+            const subtitles = {
+                'dashboard': 'Мониторинг и управление Samba-сервером',
+                'shares': 'Управление сетевыми ресурсами и доступом',
+                'users': 'Управление аккаунтами пользователей Samba',
+                'global': 'Основные параметры конфигурации smb.conf',
+                'logs': 'Просмотр системных событий в реальном времени',
+                'audit': 'История действий пользователей с файлами',
+                'automation': 'Настройка автоматического обслуживания'
+            };
+            const subEl = document.getElementById('page-subtitle');
+            if (subEl) subEl.innerText = subtitles[tabName] || '';
+        };
+    </script>
 </body>
+
 </html>

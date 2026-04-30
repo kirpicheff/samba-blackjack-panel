@@ -1,0 +1,6 @@
+[global]
+  workgroup = WORKGROUP
+
+[Обмен]
+  path = /tmp
+  vfs objects = acl_xattr recycle

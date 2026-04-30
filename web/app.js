@@ -7,7 +7,15 @@ function showTab(tabName, element) {
     if (element) element.classList.add('active');
 
     // Update header title
-    const titles = { 'dashboard': 'Дашборд', 'shares': 'Общие ресурсы', 'users': 'Пользователи', 'global': 'Настройки сервера' };
+    const titles = { 
+        'dashboard': 'Дашборд', 
+        'shares': 'Общие ресурсы', 
+        'users': 'Пользователи', 
+        'global': 'Настройки сервера',
+        'logs': 'Логи системы',
+        'audit': 'Журнал аудита',
+        'automation': 'Автоматизация'
+    };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.innerText = titles[tabName] || 'Samba Panel';
 
@@ -35,15 +43,21 @@ async function updateStatus() {
         }
         const data = await response.json();
 
-        document.getElementById('session-count').innerText = Object.keys(data.sessions || {}).length;
-        document.getElementById('file-count').innerText = Object.keys(data.open_files || {}).length;
-        document.getElementById('samba-version').innerText = data.version || 'Samba Server';
+        const sessionEl = document.getElementById('session-count');
+        const fileEl = document.getElementById('file-count');
+        const versionEl = document.getElementById('samba-version');
+        
+        if (sessionEl) sessionEl.innerText = Object.keys(data.sessions || {}).length;
+        if (fileEl) fileEl.innerText = Object.keys(data.open_files || {}).length;
+        if (versionEl) versionEl.innerText = data.version || 'Samba Server';
 
         const sessionTable = document.getElementById('sessions-table-body');
-        sessionTable.innerHTML = '';
-        for (const id in data.sessions) {
-            const s = data.sessions[id];
-            sessionTable.innerHTML += `<tr><td><strong>${s.user}</strong></td><td>${s.remote_machine}</td><td><span class="mono">${s.protocol_version}</span></td></tr>`;
+        if (sessionTable) {
+            sessionTable.innerHTML = '';
+            for (const id in data.sessions) {
+                const s = data.sessions[id];
+                sessionTable.innerHTML += `<tr><td><strong>${s.user}</strong></td><td>${s.remote_machine}</td><td><span class="mono">${s.protocol_version}</span></td></tr>`;
+            }
         }
         
         updateServiceStatus();
@@ -57,12 +71,14 @@ async function updateServiceStatus() {
         const status = await res.text();
         const topBadge = document.getElementById('samba-status-badge');
         
-        if (status === 'active') {
-            topBadge.innerText = 'SMB: ONLINE';
-            topBadge.className = 'badge online';
-        } else {
-            topBadge.innerText = 'SMB: OFFLINE';
-            topBadge.className = 'badge offline';
+        if (topBadge) {
+            if (status === 'active') {
+                topBadge.innerHTML = '<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> SMB: ONLINE';
+                topBadge.className = 'badge online';
+            } else {
+                topBadge.innerHTML = '<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> SMB: OFFLINE';
+                topBadge.className = 'badge offline';
+            }
         }
     } catch (e) { console.error(e); }
 }
@@ -91,6 +107,7 @@ async function loadShares() {
         if (response.status === 401) return;
         const data = await response.json();
         const table = document.getElementById('shares-table-body');
+        if (!table) return;
         table.innerHTML = '';
         
         data.forEach(share => {
@@ -103,128 +120,240 @@ async function loadShares() {
                 <td><span class="mono">${share.path}</span></td>
                 <td>${recycleStatus}</td>
                 <td>
-                    <button class="btn-action" onclick='openShareModal(${JSON.stringify(share)})'>Настроить</button>
-                    <button class="btn-action" style="color: #dc2626;" onclick="deleteShare('${share.name}')">Удалить</button>
+                    <button class="btn-action btn-outline" onclick='openShareModal(${JSON.stringify(share)})'><i data-lucide="edit-3" style="width:14px"></i></button>
+                    <button class="btn-action btn-outline" style="color: #ef4444;" onclick="deleteShare('${share.name}')"><i data-lucide="trash-2" style="width:14px"></i></button>
                 </td>
             </tr>`;
         });
+        if (window.lucide) lucide.createIcons();
     } catch (e) { console.error(e); }
 }
 
 function openShareModal(share = null) {
     const modal = document.getElementById('share-modal');
-    document.getElementById('modal-title').innerText = share ? 'Настройка ресурса' : 'Новый ресурс';
+    if (!modal) return;
     
-    document.getElementById('share-name').value = share ? share.name : '';
-    document.getElementById('share-name').readOnly = !!share;
-    document.getElementById('share-path').value = share ? share.path : '';
-    document.getElementById('share-comment').value = share ? (share.params.comment || '') : '';
-    document.getElementById('share-recycle').checked = share ? share.is_recycle : false;
-    document.getElementById('share-audit').checked = share ? share.is_audit : false;
-    document.getElementById('share-shadow').checked = share ? share.is_shadow_copy : false;
-    document.getElementById('share-readonly').checked = share ? (share.params['read only'] !== 'no') : false;
-    document.getElementById('share-guest').checked = share ? (share.params['guest ok'] !== 'no') : true;
-    document.getElementById('share-browseable').checked = share ? (share.params['browseable'] !== 'no') : true;
+    const title = document.getElementById('modal-title');
+    if (title) title.innerText = share ? 'Настройка ресурса' : 'Новый ресурс';
+    
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+
+    setVal('share-name', share ? share.name : '');
+    const nameEl = document.getElementById('share-name');
+    if (nameEl) nameEl.readOnly = !!share;
+    
+    setVal('share-path', share ? share.path : '');
+    setVal('share-comment', share ? (share.params.comment || '') : '');
+    setCheck('share-recycle', share ? share.is_recycle : false);
+    setCheck('share-audit', share ? share.is_audit : false);
+    setCheck('share-shadow', share ? share.is_shadow_copy : false);
+    setCheck('share-readonly', share ? (share.params['read only'] !== 'no') : false);
+    setCheck('share-guest', share ? (share.params['guest ok'] !== 'no') : true);
+    setCheck('share-browseable', share ? (share.params['browseable'] !== 'no') : true);
 
     // Recycle fields
-    document.getElementById('share-recycle-repo').value = share ? (share.params['recycle:repository'] || '') : '';
-    document.getElementById('share-recycle-exclude').value = share ? (share.params['recycle:exclude'] || '') : '';
-    document.getElementById('share-recycle-exclude-dir').value = share ? (share.params['recycle:exclude_dir'] || '') : '';
+    setVal('share-recycle-repo', share ? (share.params['recycle:repository'] || '') : '');
+    setVal('share-recycle-exclude', share ? (share.params['recycle:exclude'] || '') : '');
+    setVal('share-recycle-exclude-dir', share ? (share.params['recycle:exclude_dir'] || '') : '');
 
     // Audit fields
     if (share && share.is_audit) {
         const success = share.params['full_audit:success'] || '';
-        document.getElementById('audit-unlink').checked = success.includes('unlink');
-        document.getElementById('audit-rename').checked = success.includes('rename');
-        document.getElementById('audit-mkdir').checked = success.includes('mkdir');
-        document.getElementById('audit-open').checked = success.includes('open');
+        setCheck('audit-unlink', success.includes('unlink'));
+        setCheck('audit-rename', success.includes('rename'));
+        setCheck('audit-mkdir', success.includes('mkdir'));
+        setCheck('audit-open', success.includes('open'));
     } else {
-        document.getElementById('audit-unlink').checked = true;
-        document.getElementById('audit-rename').checked = true;
-        document.getElementById('audit-mkdir').checked = true;
-        document.getElementById('audit-open').checked = false;
+        setCheck('audit-unlink', true);
+        setCheck('audit-rename', true);
+        setCheck('audit-mkdir', true);
+        setCheck('audit-open', false);
     }
 
     // Advanced fields
-    document.getElementById('share-create-mask').value = share ? (share.params['create mask'] || '0664') : '0664';
-    document.getElementById('share-dir-mask').value = share ? (share.params['directory mask'] || '0775') : '0775';
-    document.getElementById('share-inherit-acls').checked = share ? (share.params['inherit acls'] !== 'no') : true;
-    document.getElementById('share-guest-only').checked = share ? (share.params['guest only'] === 'yes') : false;
+    setVal('share-create-mask', share ? (share.params['create mask'] || '0664') : '0664');
+    setVal('share-dir-mask', share ? (share.params['directory mask'] || '0775') : '0775');
+    setCheck('share-inherit-acls', share ? (share.params['inherit acls'] !== 'no') : true);
+    setCheck('share-guest-only', share ? (share.params['guest only'] === 'yes') : false);
 
     toggleRecycleInfo();
     toggleAuditInfo();
+    showModalTab('general');
     modal.style.display = 'block';
+    if (window.lucide) lucide.createIcons();
+}
+
+function showModalTab(tabId) {
+    document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.m-tab-content').forEach(c => c.style.display = 'none');
+    
+    const tabs = document.querySelectorAll('.modal-tab');
+    if (tabId === 'general') { if(tabs[0]) tabs[0].classList.add('active'); const el = document.getElementById('m-tab-general'); if(el) el.style.display = 'block'; }
+    if (tabId === 'access') { if(tabs[1]) tabs[1].classList.add('active'); const el = document.getElementById('m-tab-access'); if(el) el.style.display = 'block'; }
+    if (tabId === 'automation-tab') { if(tabs[2]) tabs[2].classList.add('active'); const el = document.getElementById('m-tab-automation-tab'); if(el) el.style.display = 'block'; }
 }
 
 function toggleRecycleInfo() {
-    const isChecked = document.getElementById('share-recycle').checked;
-    const isGuest = document.getElementById('share-guest').checked;
+    const recycleEl = document.getElementById('share-recycle');
+    if (!recycleEl) return;
+    
+    const isChecked = recycleEl.checked;
+    const guestEl = document.getElementById('share-guest');
+    const isGuest = guestEl ? guestEl.checked : false;
     const info = document.getElementById('recycle-info');
-    info.style.display = isChecked ? 'block' : 'none';
+    if (info) info.style.display = isChecked ? 'block' : 'none';
 
     if (isChecked) {
         const repo = document.getElementById('share-recycle-repo');
         const exclude = document.getElementById('share-recycle-exclude');
         const excludeDir = document.getElementById('share-recycle-exclude-dir');
 
-        if (!repo.value) repo.value = isGuest ? '.recycle/guest' : '.recycle/%U';
-        if (!exclude.value) exclude.value = '*.tmp *.temp ~$* *.bak Thumbs.db';
-        if (!excludeDir.value) excludeDir.value = '/tmp /cache .recycle';
+        if (repo && !repo.value) repo.value = isGuest ? '.recycle/guest' : '.recycle/%U';
+        if (exclude && !exclude.value) exclude.value = '*.tmp *.temp ~$* *.bak Thumbs.db';
+        if (excludeDir && !excludeDir.value) excludeDir.value = '/tmp /cache .recycle';
     }
 }
 
 function toggleAuditInfo() {
-    const isChecked = document.getElementById('share-audit').checked;
-    document.getElementById('audit-info').style.display = isChecked ? 'block' : 'none';
+    const el = document.getElementById('share-audit');
+    const info = document.getElementById('audit-info');
+    if (el && info) info.style.display = el.checked ? 'block' : 'none';
 }
 
-document.getElementById('share-recycle').onchange = toggleRecycleInfo;
-document.getElementById('share-guest').onchange = toggleRecycleInfo;
-document.getElementById('share-audit').onchange = toggleAuditInfo;
-
-function closeShareModal() {
-    document.getElementById('share-modal').style.display = 'none';
-}
-
-document.getElementById('share-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const share = {
-        name: document.getElementById('share-name').value,
-        path: document.getElementById('share-path').value,
-        comment: document.getElementById('share-comment').value,
-        is_recycle: document.getElementById('share-recycle').checked,
-        is_audit: document.getElementById('share-audit').checked,
-        is_shadow_copy: document.getElementById('share-shadow').checked,
-        audit_open: document.getElementById('audit-open').checked,
-        params: {
-            'read only': document.getElementById('share-readonly').checked ? 'yes' : 'no',
-            'guest ok': document.getElementById('share-guest').checked ? 'yes' : 'no',
-            'browseable': document.getElementById('share-browseable').checked ? 'yes' : 'no',
-            'create mask': document.getElementById('share-create-mask').value,
-            'directory mask': document.getElementById('share-dir-mask').value,
-            'force create mode': document.getElementById('share-create-mask').value,
-            'force directory mode': document.getElementById('share-dir-mask').value,
-            'inherit acls': document.getElementById('share-inherit-acls').checked ? 'yes' : 'no',
-            'guest only': document.getElementById('share-guest-only').checked ? 'yes' : 'no',
-            'recycle:repository': document.getElementById('share-recycle-repo').value,
-            'recycle:exclude': document.getElementById('share-recycle-exclude').value,
-            'recycle:exclude_dir': document.getElementById('share-recycle-exclude-dir').value
-        }
+const initEvents = () => {
+    const bind = (id, event, fn) => {
+        const el = document.getElementById(id);
+        if (el) el[event] = fn;
     };
 
-    const res = await fetch('/api/shares/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(share)
+    bind('share-recycle', 'onchange', () => {
+        toggleRecycleInfo();
+        const shadowInfo = document.getElementById('shadow-info');
+        if (shadowInfo && document.getElementById('share-recycle').checked) {
+            shadowInfo.style.display = 'none';
+        }
     });
 
-    if (res.ok) {
-        closeShareModal();
-        loadShares();
-    } else {
-        alert('Ошибка при сохранении ресурса');
-    }
+    bind('share-shadow', 'onchange', () => {
+        const shadowInfo = document.getElementById('shadow-info');
+        const shadowCheck = document.getElementById('share-shadow');
+        if (shadowInfo && shadowCheck) {
+            shadowInfo.style.display = shadowCheck.checked ? 'block' : 'none';
+        }
+    });
+
+    bind('share-guest', 'onchange', toggleRecycleInfo);
+    bind('share-audit', 'onchange', toggleAuditInfo);
+    bind('share-form', 'onsubmit', async (e) => {
+        e.preventDefault();
+        const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+        const getCheck = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
+
+        const share = {
+            name: getVal('share-name'),
+            path: getVal('share-path'),
+            comment: getVal('share-comment'),
+            is_recycle: getCheck('share-recycle'),
+            is_audit: getCheck('share-audit'),
+            is_shadow_copy: getCheck('share-shadow'),
+            audit_open: getCheck('audit-open'),
+            params: {
+                'read only': getCheck('share-readonly') ? 'yes' : 'no',
+                'guest ok': getCheck('share-guest') ? 'yes' : 'no',
+                'browseable': getCheck('share-browseable') ? 'yes' : 'no',
+                'create mask': getVal('share-create-mask'),
+                'directory mask': getVal('share-dir-mask'),
+                'force create mode': getVal('share-create-mask'),
+                'force directory mode': getVal('share-dir-mask'),
+                'inherit acls': getCheck('share-inherit-acls') ? 'yes' : 'no',
+                'guest only': getCheck('share-guest-only') ? 'yes' : 'no',
+                'recycle:repository': getVal('share-recycle-repo'),
+                'recycle:exclude': getVal('share-recycle-exclude'),
+                'recycle:exclude_dir': getVal('share-recycle-exclude-dir')
+            }
+        };
+
+        const res = await fetch('/api/shares/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(share)
+        });
+
+        if (res.ok) {
+            closeShareModal();
+            loadShares();
+        } else {
+            alert('Ошибка при сохранении ресурса');
+        }
+    });
+
+    bind('user-form', 'onsubmit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('user-username').value;
+        const password = document.getElementById('user-password').value;
+
+        const res = await fetch('/api/users/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (res.ok) {
+            closeUserModal();
+            loadUsers();
+        } else {
+            const error = await res.text();
+            alert('Ошибка при сохранении пользователя: ' + error);
+        }
+    });
+
+    bind('password-form', 'onsubmit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('pass-username').value;
+        const password = document.getElementById('new-password').value;
+
+        const res = await fetch('/api/users/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (res.ok) {
+            alert('Пароль успешно изменен');
+            closePasswordModal();
+        } else {
+            const error = await res.text();
+            alert('Ошибка при смене пароля: ' + error);
+        }
+    });
+
+    bind('global-form', 'onsubmit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const params = {};
+        formData.forEach((value, key) => params[key] = value);
+
+        const res = await fetch('/api/global/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ params })
+        });
+
+        if (res.ok) alert('Глобальные настройки сохранены');
+    });
 };
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEvents);
+} else {
+    initEvents();
+}
+
+function closeShareModal() {
+    const modal = document.getElementById('share-modal');
+    if (modal) modal.style.display = 'none';
+}
 
 async function deleteShare(name) {
     if (!confirm(`Вы уверены, что хотите удалить ресурс "${name}"?`)) return;
@@ -243,26 +372,12 @@ async function loadGlobalConfig() {
     if (res.status === 401) return;
     const data = await res.json();
     const form = document.getElementById('global-form');
+    if (!form) return;
     for (const key in data.params) {
         const input = form.querySelector(`[name="${key}"]`);
         if (input) input.value = data.params[key];
     }
 }
-
-document.getElementById('global-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const params = {};
-    formData.forEach((value, key) => params[key] = value);
-
-    const res = await fetch('/api/global/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ params })
-    });
-
-    if (res.ok) alert('Глобальные настройки сохранены');
-};
 
 async function applyChanges() {
     const btn = document.getElementById('btn-apply');
@@ -296,6 +411,7 @@ async function loadUsers() {
         if (response.status === 401) return;
         const data = await response.json();
         const table = document.getElementById('users-table-body');
+        if (!table) return;
         table.innerHTML = '';
         
         data.forEach(user => {
@@ -304,73 +420,42 @@ async function loadUsers() {
                 <td><span class="mono">${user.uid}</span></td>
                 <td>${user.full_name || '-'}</td>
                 <td>
-                    <button class="btn-action" onclick="openPasswordModal('${user.username}')">Пароль</button>
-                    <button class="btn-action" style="color: #dc2626;" onclick="deleteUser('${user.username}')">Удалить</button>
+                    <button class="btn-action btn-outline" onclick="openPasswordModal('${user.username}')"><i data-lucide="key" style="width:14px"></i></button>
+                    <button class="btn-action btn-outline" style="color: #ef4444;" onclick="deleteUser('${user.username}')"><i data-lucide="trash-2" style="width:14px"></i></button>
                 </td>
             </tr>`;
         });
+        if (window.lucide) lucide.createIcons();
     } catch (e) { console.error(e); }
 }
 
 function openUserModal() {
-    document.getElementById('user-modal').style.display = 'block';
-    document.getElementById('user-form').reset();
+    const modal = document.getElementById('user-modal');
+    if (modal) modal.style.display = 'block';
+    const form = document.getElementById('user-form');
+    if (form) form.reset();
 }
 
 function closeUserModal() {
-    document.getElementById('user-modal').style.display = 'none';
+    const modal = document.getElementById('user-modal');
+    if (modal) modal.style.display = 'none';
 }
 
-document.getElementById('user-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('user-username').value;
-    const password = document.getElementById('user-password').value;
-
-    const res = await fetch('/api/users/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-
-    if (res.ok) {
-        closeUserModal();
-        loadUsers();
-    } else {
-        const error = await res.text();
-        alert('Ошибка при сохранении пользователя: ' + error);
-    }
-};
-
 function openPasswordModal(username) {
-    document.getElementById('password-modal').style.display = 'block';
-    document.getElementById('pass-username').value = username;
-    document.getElementById('pass-user-display').innerText = username;
-    document.getElementById('new-password').value = '';
+    const modal = document.getElementById('password-modal');
+    if (modal) modal.style.display = 'block';
+    const uInput = document.getElementById('pass-username');
+    if (uInput) uInput.value = username;
+    const uDisplay = document.getElementById('pass-user-display');
+    if (uDisplay) uDisplay.innerText = username;
+    const pInput = document.getElementById('new-password');
+    if (pInput) pInput.value = '';
 }
 
 function closePasswordModal() {
-    document.getElementById('password-modal').style.display = 'none';
+    const modal = document.getElementById('password-modal');
+    if (modal) modal.style.display = 'none';
 }
-
-document.getElementById('password-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('pass-username').value;
-    const password = document.getElementById('new-password').value;
-
-    const res = await fetch('/api/users/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-
-    if (res.ok) {
-        alert('Пароль успешно изменен');
-        closePasswordModal();
-    } else {
-        const error = await res.text();
-        alert('Ошибка при смене пароля: ' + error);
-    }
-};
 
 async function deleteUser(username) {
     if (!confirm(`Вы уверены, что хотите удалить пользователя Samba "${username}"?`)) return;
@@ -399,26 +484,25 @@ async function loadDiskUsage() {
         
         container.innerHTML = '';
         data.forEach(disk => {
-            const color = disk.percent > 90 ? '#ef4444' : (disk.percent > 75 ? '#f59e0b' : '#10b981');
+            const color = disk.percent > 90 ? 'var(--status-offline)' : (disk.percent > 75 ? '#f59e0b' : 'var(--status-online)');
             const sharesList = disk.shares && disk.shares.length > 0 ? 
-                `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem;">
+                `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.8rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">
                     <strong>Ресурсы:</strong> ${disk.shares.join(', ')}
                  </div>` : '';
 
             container.innerHTML += `
-                <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;" title="${disk.mount_point}">${disk.mount_point}</span>
-                        <span style="font-size: 0.8rem; color: #64748b;">${disk.percent}%</span>
+                <div class="stat-card" style="padding: 1.5rem; border-radius: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; align-items: center;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;" title="${disk.mount_point}">${disk.mount_point}</span>
+                        <span style="font-size: 0.8rem; font-weight: 800; color: ${color};">${disk.percent}%</span>
                     </div>
-                    <div style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem;">
-                        <div style="width: ${disk.percent}%; height: 100%; background: ${color}; border-radius: 4px;"></div>
+                    <div style="height: 10px; background: rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; border: 1px solid rgba(0,0,0,0.02);">
+                        <div style="width: ${disk.percent}%; height: 100%; background: ${color}; border-radius: 10px; box-shadow: 0 0 10px ${color}44;"></div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b;">
-                        <span>Использовано: ${disk.used}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">
+                        <span>Использовано: <strong>${disk.used}</strong></span>
                         <span>Всего: ${disk.total}</span>
                     </div>
-                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.4rem;">Свободно: ${disk.free}</div>
                     ${sharesList}
                 </div>
             `;
@@ -434,7 +518,6 @@ async function loadLogs() {
         const res = await fetch('/api/logs');
         const text = await res.text();
         
-        // Сравниваем с текущим содержимым, чтобы не скроллить лишний раз
         if (output.innerText !== text) {
             output.innerText = text;
             output.scrollTop = output.scrollHeight;
@@ -452,21 +535,22 @@ async function loadAuditLogs() {
         
         table.innerHTML = '';
         data.forEach(entry => {
-            let actionColor = '#1e293b';
-            if (entry.action === 'unlink') actionColor = '#ef4444';
+            let actionColor = 'var(--text-primary)';
+            if (entry.action === 'unlink') actionColor = 'var(--status-offline)';
             if (entry.action === 'rename') actionColor = '#f59e0b';
-            if (entry.action === 'mkdir') actionColor = '#10b981';
+            if (entry.action === 'mkdir') actionColor = 'var(--status-online)';
 
             table.innerHTML += `
                 <tr>
-                    <td style="font-size: 0.75rem; color: #64748b;">${entry.timestamp}</td>
+                    <td style="font-size: 0.75rem; color: var(--text-secondary);">${entry.timestamp}</td>
                     <td><strong>${entry.user}</strong></td>
                     <td class="mono" style="font-size: 0.75rem;">${entry.ip}</td>
-                    <td><span class="badge" style="background: ${actionColor}; color: white; padding: 2px 6px;">${entry.action.toUpperCase()}</span></td>
+                    <td><span class="badge" style="background: ${actionColor}; color: white; border: none; padding: 2px 8px;">${entry.action.toUpperCase()}</span></td>
                     <td style="font-size: 0.8rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${entry.file}">${entry.file}</td>
                 </tr>
             `;
         });
+        if (window.lucide) lucide.createIcons();
     } catch (e) { console.error(e); }
 }
 
@@ -493,7 +577,7 @@ async function clearRecycleBins() {
         if (failCount > 0) message += `\nОшибок: ${failCount}`;
         
         alert(message);
-        loadDiskUsage(); // Обновляем инфо о дисках
+        loadDiskUsage();
     } catch (e) {
         alert('Ошибка при очистке: ' + e.message);
     }
@@ -508,17 +592,24 @@ async function loadAutomationSettings() {
     try {
         const res = await fetch('/api/automation');
         const s = await res.json();
-        document.getElementById('auto-recycle-days').value = s.recycle_days;
-        document.getElementById('auto-snap-interval').value = s.snapshot_interval;
-        document.getElementById('auto-snap-keep').value = s.snapshot_keep;
+        const rDays = document.getElementById('auto-recycle-days');
+        const sInt = document.getElementById('auto-snap-interval');
+        const sKeep = document.getElementById('auto-snap-keep');
+        if (rDays) rDays.value = s.recycle_days;
+        if (sInt) sInt.value = s.snapshot_interval;
+        if (sKeep) sKeep.value = s.snapshot_keep;
     } catch (e) { console.error(e); }
 }
 
 async function saveAutomationSettings() {
+    const rDays = document.getElementById('auto-recycle-days');
+    const sInt = document.getElementById('auto-snap-interval');
+    const sKeep = document.getElementById('auto-snap-keep');
+    
     const s = {
-        recycle_days: parseInt(document.getElementById('auto-recycle-days').value),
-        snapshot_interval: document.getElementById('auto-snap-interval').value,
-        snapshot_keep: parseInt(document.getElementById('auto-snap-keep').value)
+        recycle_days: rDays ? parseInt(rDays.value) : 0,
+        snapshot_interval: sInt ? sInt.value : 'none',
+        snapshot_keep: sKeep ? parseInt(sKeep.value) : 0
     };
     try {
         await fetch('/api/automation/save', {
@@ -529,8 +620,16 @@ async function saveAutomationSettings() {
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-
-setInterval(updateStatus, 3000);
+function showSettingsSection(sectionId, element) {
+    document.querySelectorAll('.settings-section').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+    
+    const section = document.getElementById(`sec-${sectionId}`);
+    if (section) section.style.display = 'block';
+    if (element) element.classList.add('active');
+    
+    if (window.lucide) lucide.createIcons();
+}
 
 setInterval(updateStatus, 3000);
 updateStatus();
