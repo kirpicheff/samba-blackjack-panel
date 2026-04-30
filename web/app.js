@@ -59,11 +59,9 @@ async function updateServiceStatus() {
         if (status === 'active') {
             topBadge.innerText = 'SMB: ONLINE';
             topBadge.className = 'badge online';
-            topBadge.style.background = '#10b981';
         } else {
             topBadge.innerText = 'SMB: OFFLINE';
             topBadge.className = 'badge offline';
-            topBadge.style.background = '#ef4444';
         }
     } catch (e) { console.error(e); }
 }

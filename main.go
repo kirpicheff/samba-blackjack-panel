@@ -216,6 +216,7 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 	}
 	section.Key("vfs objects").SetValue(strings.Join(vfs, " "))
 
+	createConfigBackup() // Делаем бэкап перед сохранением
 	if err := cfg.SaveTo(path); err != nil {
 		http.Error(w, "Failed to save smb.conf", 500)
 		return
@@ -243,6 +244,7 @@ func deleteShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg.DeleteSection(req.Name)
+	createConfigBackup()
 	cfg.SaveTo(path)
 	w.WriteHeader(http.StatusOK)
 }
@@ -266,6 +268,38 @@ func getGlobalConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(global)
+}
+
+// createConfigBackup создает копию текущего smb.conf перед изменениями
+func createConfigBackup() {
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+
+	backupDir := "backups"
+	os.MkdirAll(backupDir, 0755)
+
+	timestamp := time.Now().Format("20060102_150405")
+	backupPath := fmt.Sprintf("%s/smb.conf.%s", backupDir, timestamp)
+
+	// Копируем файл
+	input, _ := os.ReadFile(path)
+	os.WriteFile(backupPath, input, 0644)
+
+	// Ротация: удаляем старые бэкапы, если их больше 10
+	files, _ := os.ReadDir(backupDir)
+	if len(files) > 10 {
+		var oldest os.DirEntry
+		for _, f := range files {
+			if oldest == nil || f.Name() < oldest.Name() {
+				oldest = f
+			}
+		}
+		if oldest != nil {
+			os.Remove(backupDir + "/" + oldest.Name())
+		}
+	}
 }
 
 // saveGlobalConfig сохраняет параметры в секцию [global]
@@ -296,6 +330,7 @@ func saveGlobalConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	createConfigBackup() // Делаем бэкап перед сохранением
 	if err := cfg.SaveTo(path); err != nil {
 		http.Error(w, "Failed to save smb.conf", 500)
 		return
