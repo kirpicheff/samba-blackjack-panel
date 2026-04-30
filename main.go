@@ -81,8 +81,9 @@ type DiskUsage struct {
 	MountPoint string  `json:"mount_point"`
 	Total      string  `json:"total"`
 	Used       string  `json:"used"`
-	Free       string  `json:"free"`
-	Percent    float64 `json:"percent"`
+	Free       string   `json:"free"`
+	Percent    float64  `json:"percent"`
+	Shares     []string `json:"shares"`
 }
 
 type AuditEntry struct {
@@ -550,8 +551,8 @@ func getDiskUsageHandler(w http.ResponseWriter, r *http.Request) {
 	if os.PathSeparator == '\\' {
 		// Mock для Windows
 		usage := []DiskUsage{
-			{Path: "/data", MountPoint: "/dev/sda1", Total: "1.8T", Used: "450G", Free: "1.3T", Percent: 25},
-			{Path: "/mnt/backup", MountPoint: "/dev/sdb1", Total: "4.0T", Used: "3.2T", Free: "800G", Percent: 80},
+			{Path: "/data", MountPoint: "/dev/sda1", Total: "1.8T", Used: "450G", Free: "1.3T", Percent: 25, Shares: []string{"Обмен", "Музыка"}},
+			{Path: "/mnt/backup", MountPoint: "/dev/sdb1", Total: "4.0T", Used: "3.2T", Free: "800G", Percent: 80, Shares: []string{"Бэкапы"}},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(usage)
@@ -605,14 +606,27 @@ func getDiskUsageHandler(w http.ResponseWriter, r *http.Request) {
 		var percent float64
 		fmt.Sscanf(percentStr, "%f", &percent)
 
-		results = append(results, DiskUsage{
+		usage := DiskUsage{
 			Path:       p,
 			MountPoint: fields[0],
 			Total:      fields[1],
 			Used:       fields[2],
 			Free:       fields[3],
 			Percent:    percent,
-		})
+			Shares:     []string{},
+		}
+
+		// Сопоставляем шары с этим диском
+		for _, section := range cfg.Sections() {
+			if section.Name() == "DEFAULT" || section.Name() == "global" { continue }
+			sharePath := section.Key("path").String()
+			// Если путь шары находится на этом разделе (начинается с точки монтирования)
+			if strings.HasPrefix(sharePath, mount) {
+				usage.Shares = append(usage.Shares, section.Name())
+			}
+		}
+
+		results = append(results, usage)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

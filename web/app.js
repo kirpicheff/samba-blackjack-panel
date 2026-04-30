@@ -400,10 +400,15 @@ async function loadDiskUsage() {
         container.innerHTML = '';
         data.forEach(disk => {
             const color = disk.percent > 90 ? '#ef4444' : (disk.percent > 75 ? '#f59e0b' : '#10b981');
+            const sharesList = disk.shares && disk.shares.length > 0 ? 
+                `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem;">
+                    <strong>Ресурсы:</strong> ${disk.shares.join(', ')}
+                 </div>` : '';
+
             container.innerHTML += `
                 <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">${disk.mount_point}</span>
+                        <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;" title="${disk.mount_point}">${disk.mount_point}</span>
                         <span style="font-size: 0.8rem; color: #64748b;">${disk.percent}%</span>
                     </div>
                     <div style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem;">
@@ -414,6 +419,7 @@ async function loadDiskUsage() {
                         <span>Всего: ${disk.total}</span>
                     </div>
                     <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.4rem;">Свободно: ${disk.free}</div>
+                    ${sharesList}
                 </div>
             `;
         });
@@ -523,20 +529,8 @@ async function saveAutomationSettings() {
     } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-const style = document.createElement('style');
-style.innerHTML = `
-    .btn-action {
-        padding: 4px 12px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .btn-action:hover { background: #f1f5f9; }
-`;
-document.head.appendChild(style);
+
+setInterval(updateStatus, 3000);
 
 setInterval(updateStatus, 3000);
 updateStatus();
