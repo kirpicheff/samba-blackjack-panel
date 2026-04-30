@@ -657,12 +657,24 @@ async function checkADStatus() {
         }
         
         if (infoBox) {
-            if (data.info) {
+            // Показываем подробности (info) только если сервер В ДОМЕНЕ (чтобы видеть ошибки связи)
+            // Или если это не стандартная ошибка отсутствия подключения
+            if (data.joined && data.info) {
                 infoBox.innerText = data.info;
                 infoBox.style.display = 'block';
-                infoBox.style.background = data.joined ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
-                infoBox.style.color = data.joined ? '#065f46' : '#991b1b';
-                infoBox.style.border = data.joined ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+                infoBox.style.background = 'rgba(16, 185, 129, 0.05)';
+                infoBox.style.color = '#065f46';
+                infoBox.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+            } else if (!data.joined && data.info && data.info.includes('Join to domain is not valid')) {
+                // Если просто не в домене — не показываем технический мусор
+                infoBox.style.display = 'none';
+            } else if (data.info) {
+                // Если какая-то другая ошибка — показываем
+                infoBox.innerText = data.info;
+                infoBox.style.display = 'block';
+                infoBox.style.background = 'rgba(239, 68, 68, 0.05)';
+                infoBox.style.color = '#991b1b';
+                infoBox.style.border = '1px solid rgba(239, 68, 68, 0.2)';
             } else {
                 infoBox.style.display = 'none';
             }
