@@ -31,6 +31,9 @@
             <div class="nav-item" onclick="showTab('users', this)">
                 <i data-lucide="users"></i> Пользователи
             </div>
+            <div class="nav-item" onclick="showTab('groups', this)">
+                <i data-lucide="users-2"></i> Группы
+            </div>
             <div class="nav-item" onclick="showTab('global', this)">
                 <i data-lucide="settings-2"></i> Настройки сервера
             </div>
@@ -180,6 +183,31 @@
                             </tr>
                         </thead>
                         <tbody id="users-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка Группы -->
+        <div id="tab-groups" class="tab-content" style="display:none;">
+            <div class="content-panel">
+                <div class="panel-header">
+                    <h2>Группы Samba / Системные</h2>
+                    <button class="btn-action btn-primary" onclick="openGroupModal()">
+                        <i data-lucide="plus-square"></i> Добавить группу
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Имя группы</th>
+                                <th>GID</th>
+                                <th>Участники</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groups-table-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -577,6 +605,59 @@
         </div>
     </div>
 
+        </div>
+    </div>
+
+    <!-- Модальное окно: Группа -->
+    <div id="group-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="panel-header">
+                <h2 id="group-modal-title">Новая группа</h2>
+                <div class="close" onclick="closeGroupModal()">&times;</div>
+            </div>
+            <form id="group-form" style="padding: 2rem;">
+                <div class="form-group"><label>Имя группы</label><input type="text" id="group-name" required></div>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn-action btn-outline" onclick="closeGroupModal()">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Участники группы -->
+    <div id="group-members-modal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="panel-header">
+                <h2>Участники группы: <span id="group-members-title" style="color: var(--accent-blue);"></span></h2>
+                <div class="close" onclick="closeGroupMembersModal()">&times;</div>
+            </div>
+            <div style="padding: 2rem;">
+                <div class="form-group">
+                    <label>Добавить пользователя</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="group-add-user-select" style="flex-grow: 1;"></select>
+                        <button class="btn-action btn-primary" onclick="addGroupMember()">Добавить</button>
+                    </div>
+                </div>
+                <div class="table-container" style="margin-top: 1.5rem; max-height: 300px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="group-members-table-body"></tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                    <button type="button" class="btn-action btn-outline" onclick="closeGroupMembersModal()">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
     <script>
         // Инициализация иконок Lucide
@@ -592,6 +673,7 @@
                 'dashboard': 'Мониторинг и управление Samba-сервером',
                 'shares': 'Управление сетевыми ресурсами и доступом',
                 'users': 'Управление аккаунтами пользователей Samba',
+                'groups': 'Управление группами и членством пользователей',
                 'global': 'Основные параметры конфигурации smb.conf',
                 'logs': 'Просмотр системных событий в реальном времени',
                 'audit': 'История действий пользователей с файлами',

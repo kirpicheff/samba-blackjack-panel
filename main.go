@@ -64,6 +64,12 @@ type SambaUser struct {
 	FullName string `json:"full_name"`
 }
 
+type SambaGroup struct {
+	Name    string   `json:"name"`
+	GID     string   `json:"gid"`
+	Members []string `json:"members"`
+}
+
 type ShareInfo struct {
 	Name      string            `json:"name"`
 	Path      string            `json:"path"`
@@ -461,6 +467,124 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		http.Error(w, "Ошибка при удалении: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// getGroups возвращает список групп из /etc/group (через getent group)
+func getGroups(w http.ResponseWriter, r *http.Request) {
+	if os.PathSeparator == '\\' {
+		// Mock для Windows
+		groups := []SambaGroup{
+			{Name: "smb_admins", GID: "2000", Members: []string{"admin"}},
+			{Name: "users", GID: "2001", Members: []string{"user1", "admin"}},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(groups)
+		return
+	}
+
+	cmd := exec.Command("getent", "group")
+	output, err := cmd.Output()
+	if err != nil {
+		http.Error(w, "Ошибка получения групп", 500)
+		return
+	}
+
+	var groups []SambaGroup
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" { continue }
+		parts := strings.Split(line, ":")
+		if len(parts) >= 4 {
+			members := []string{}
+			if parts[3] != "" {
+				members = strings.Split(parts[3], ",")
+			}
+			groups = append(groups, SambaGroup{
+				Name:    parts[0],
+				GID:     parts[2],
+				Members: members,
+			})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(groups)
+}
+
+// saveGroupHandler создает новую группу
+func saveGroupHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct { Name string `json:"name"` }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	cmd := exec.Command("groupadd", req.Name)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		http.Error(w, "Ошибка создания группы: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// deleteGroupHandler удаляет группу
+func deleteGroupHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct { Name string `json:"name"` }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	cmd := exec.Command("groupdel", req.Name)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		http.Error(w, "Ошибка удаления группы: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// toggleGroupMemberHandler добавляет или удаляет пользователя из группы
+func toggleGroupMemberHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Group    string `json:"group"`
+		Username string `json:"username"`
+		Action   string `json:"action"` // "add" or "remove"
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var cmd *exec.Cmd
+	if req.Action == "add" {
+		cmd = exec.Command("gpasswd", "-a", req.Username, req.Group)
+	} else {
+		cmd = exec.Command("gpasswd", "-d", req.Username, req.Group)
+	}
+
+	if output, err := cmd.CombinedOutput(); err != nil {
+		http.Error(w, "Ошибка управления участниками: "+string(output), 500)
 		return
 	}
 
@@ -957,6 +1081,10 @@ func main() {
 	http.HandleFunc("/api/users", authMiddleware(getUsers))
 	http.HandleFunc("/api/users/save", authMiddleware(saveUserHandler))
 	http.HandleFunc("/api/users/delete", authMiddleware(deleteUserHandler))
+	http.HandleFunc("/api/groups", authMiddleware(getGroups))
+	http.HandleFunc("/api/groups/save", authMiddleware(saveGroupHandler))
+	http.HandleFunc("/api/groups/delete", authMiddleware(deleteGroupHandler))
+	http.HandleFunc("/api/groups/member", authMiddleware(toggleGroupMemberHandler))
 	http.HandleFunc("/api/ad/status", authMiddleware(getADStatusHandler))
 	http.HandleFunc("/api/ad/join", authMiddleware(joinADHandler))
 

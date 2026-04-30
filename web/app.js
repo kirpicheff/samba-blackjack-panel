@@ -28,6 +28,7 @@ function showTab(tabName, element) {
 
     if (tabName === 'shares') loadShares();
     if (tabName === 'users') loadUsers();
+    if (tabName === 'groups') loadGroups();
     if (tabName === 'global') loadGlobalConfig();
     if (tabName === 'logs') loadLogs();
     if (tabName === 'audit') loadAuditLogs();
@@ -308,6 +309,25 @@ const initEvents = () => {
         }
     });
 
+    bind('group-form', 'onsubmit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('group-name').value;
+
+        const res = await fetch('/api/groups/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+
+        if (res.ok) {
+            closeGroupModal();
+            loadGroups();
+        } else {
+            const error = await res.text();
+            alert('Ошибка при создании группы: ' + error);
+        }
+    });
+
     bind('password-form', 'onsubmit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('pass-username').value;
@@ -471,6 +491,152 @@ async function deleteUser(username) {
     } else {
         const error = await res.text();
         alert('Ошибка при удалении пользователя: ' + error);
+    }
+}
+
+async function loadGroups() {
+    try {
+        const response = await fetch('/api/groups');
+        if (response.status === 401) return;
+        const groups = await response.json();
+        const table = document.getElementById('groups-table-body');
+        if (!table) return;
+        table.innerHTML = '';
+        
+        groups.forEach(group => {
+            const members = group.members && group.members.length > 0 
+                ? group.members.map(m => `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none; margin: 2px;">${m}</span>`).join('')
+                : '<span style="color: #94a3b8; font-size: 0.8rem;">Нет участников</span>';
+
+            table.innerHTML += `<tr>
+                <td><strong>${group.name}</strong></td>
+                <td><span class="mono">${group.gid}</span></td>
+                <td style="max-width: 300px; white-space: normal;">${members}</td>
+                <td>
+                    <button class="btn-action btn-outline" onclick="openGroupMembersModal('${group.name}')" title="Участники"><i data-lucide="users" style="width:14px"></i></button>
+                    <button class="btn-action btn-outline" style="color: #ef4444;" onclick="deleteGroup('${group.name}')" title="Удалить"><i data-lucide="trash-2" style="width:14px"></i></button>
+                </td>
+            </tr>`;
+        });
+        if (window.lucide) lucide.createIcons();
+    } catch (e) { console.error(e); }
+}
+
+function openGroupModal() {
+    const modal = document.getElementById('group-modal');
+    if (modal) modal.style.display = 'block';
+    const form = document.getElementById('group-form');
+    if (form) form.reset();
+}
+
+function closeGroupModal() {
+    const modal = document.getElementById('group-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function deleteGroup(name) {
+    if (!confirm(`Вы уверены, что хотите удалить группу "${name}"?`)) return;
+
+    const res = await fetch('/api/groups/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+
+    if (res.ok) {
+        loadGroups();
+    } else {
+        const error = await res.text();
+        alert('Ошибка при удалении группы: ' + error);
+    }
+}
+
+let currentActiveGroup = '';
+
+async function openGroupMembersModal(groupName) {
+    currentActiveGroup = groupName;
+    const modal = document.getElementById('group-members-modal');
+    const title = document.getElementById('group-members-title');
+    if (modal) modal.style.display = 'block';
+    if (title) title.innerText = groupName;
+
+    // Загружаем список всех пользователей для выпадающего списка
+    const usersRes = await fetch('/api/users');
+    const allUsers = await usersRes.json();
+    const select = document.getElementById('group-add-user-select');
+    if (select) {
+        select.innerHTML = '<option value="">Выберите пользователя...</option>';
+        allUsers.forEach(u => {
+            select.innerHTML += `<option value="${u.username}">${u.username} (${u.full_name || ''})</option>`;
+        });
+    }
+
+    loadGroupMembers(groupName);
+}
+
+async function loadGroupMembers(groupName) {
+    const res = await fetch('/api/groups');
+    const groups = await res.json();
+    const group = groups.find(g => g.name === groupName);
+    const table = document.getElementById('group-members-table-body');
+    if (!table || !group) return;
+
+    table.innerHTML = '';
+    if (group.members) {
+        group.members.forEach(m => {
+            table.innerHTML += `<tr>
+                <td><strong>${m}</strong></td>
+                <td>
+                    <button class="btn-action btn-outline" style="color: #ef4444; padding: 4px 8px;" onclick="removeGroupMember('${group.name}', '${m}')">
+                        <i data-lucide="user-minus" style="width:14px"></i> Удалить
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeGroupMembersModal() {
+    const modal = document.getElementById('group-members-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function addGroupMember() {
+    const select = document.getElementById('group-add-user-select');
+    const username = select.value;
+    if (!username) return;
+
+    const res = await fetch('/api/groups/member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group: currentActiveGroup, username, action: 'add' })
+    });
+
+    if (res.ok) {
+        loadGroupMembers(currentActiveGroup);
+        loadGroups();
+    } else {
+        const error = await res.text();
+        alert('Ошибка: ' + error);
+    }
+}
+
+async function removeGroupMember(group, username) {
+    if (!confirm(`Удалить пользователя ${username} из группы ${group}?`)) return;
+
+    const res = await fetch('/api/groups/member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group, username, action: 'remove' })
+    });
+
+    if (res.ok) {
+        loadGroupMembers(group);
+        loadGroups();
+    } else {
+        const error = await res.text();
+        alert('Ошибка: ' + error);
     }
 }
 
