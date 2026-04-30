@@ -59,6 +59,10 @@ type ShareInfo struct {
 	Params    map[string]string `json:"params"`
 }
 
+type GlobalConfig struct {
+	Params map[string]string `json:"params"`
+}
+
 // getSambaStatus вызывает smbstatus --json
 func getSambaStatus(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command("smbstatus", "--json")
@@ -144,8 +148,27 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 
 	if share.IsRecycle {
 		section.Key("vfs objects").SetValue("acl_xattr recycle")
+		
+		repo := ".recycle/%U"
+		if share.Params["guest ok"] == "yes" {
+			repo = ".recycle/guest"
+		}
+		
+		section.Key("recycle:repository").SetValue(repo)
+		section.Key("recycle:keeptree").SetValue("yes")
+		section.Key("recycle:versions").SetValue("yes")
+		section.Key("recycle:touch").SetValue("yes")
+		section.Key("recycle:directory_mode").SetValue("0770")
+		section.Key("recycle:exclude").SetValue("*.tmp *.temp ~$* *.bak Thumbs.db")
+		section.Key("recycle:exclude_dir").SetValue("/tmp /cache .recycle")
 	} else {
 		section.Key("vfs objects").SetValue("acl_xattr")
+		// Удаляем все параметры recycle:*
+		for _, k := range section.KeyStrings() {
+			if strings.HasPrefix(k, "recycle:") {
+				section.DeleteKey(k)
+			}
+		}
 	}
 
 	if err := cfg.SaveTo(path); err != nil {
@@ -176,6 +199,58 @@ func deleteShare(w http.ResponseWriter, r *http.Request) {
 
 	cfg.DeleteSection(req.Name)
 	cfg.SaveTo(path)
+	w.WriteHeader(http.StatusOK)
+}
+
+// getGlobalConfig возвращает параметры секции [global]
+func getGlobalConfig(w http.ResponseWriter, r *http.Request) {
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+
+	cfg, err := ini.Load(path)
+	if err != nil {
+		http.Error(w, "Failed to load smb.conf", 500)
+		return
+	}
+
+	global := GlobalConfig{
+		Params: cfg.Section("global").KeysHash(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(global)
+}
+
+// saveGlobalConfig сохраняет параметры в секцию [global]
+func saveGlobalConfig(w http.ResponseWriter, r *http.Request) {
+	var config GlobalConfig
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+
+	cfg, err := ini.Load(path)
+	if err != nil {
+		http.Error(w, "Failed to load smb.conf", 500)
+		return
+	}
+
+	section := cfg.Section("global")
+	for k, v := range config.Params {
+		section.Key(k).SetValue(v)
+	}
+
+	if err := cfg.SaveTo(path); err != nil {
+		http.Error(w, "Failed to save smb.conf", 500)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -295,6 +370,8 @@ func main() {
 	http.HandleFunc("/api/logout", logoutHandler)
 	http.HandleFunc("/api/shares/save", authMiddleware(saveShare))
 	http.HandleFunc("/api/shares/delete", authMiddleware(deleteShare))
+	http.HandleFunc("/api/global", authMiddleware(getGlobalConfig))
+	http.HandleFunc("/api/global/save", authMiddleware(saveGlobalConfig))
 	http.HandleFunc("/api/status", authMiddleware(getSambaStatus))
 	http.HandleFunc("/api/shares", authMiddleware(getShares))
 	http.HandleFunc("/api/users", authMiddleware(getUsers))

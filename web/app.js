@@ -7,6 +7,7 @@ function showTab(tabName, el) {
 
     if (tabName === 'shares') loadShares();
     if (tabName === 'users') loadUsers();
+    if (tabName === 'global') loadGlobalConfig();
 }
 
 async function updateStatus() {
@@ -66,10 +67,26 @@ function openShareModal(share = null) {
     document.getElementById('share-path').value = share ? share.path : '';
     document.getElementById('share-comment').value = share ? (share.params.comment || '') : '';
     document.getElementById('share-recycle').checked = share ? share.is_recycle : false;
-    document.getElementById('share-readonly').checked = share ? (share.params['read only'] !== 'no') : true;
+    document.getElementById('share-readonly').checked = share ? (share.params['read only'] !== 'no') : false;
+    document.getElementById('share-guest').checked = share ? (share.params['guest ok'] !== 'no') : true;
+    document.getElementById('share-browseable').checked = share ? (share.params['browseable'] !== 'no') : true;
 
+    // Advanced fields
+    document.getElementById('share-create-mask').value = share ? (share.params['create mask'] || '0664') : '0664';
+    document.getElementById('share-dir-mask').value = share ? (share.params['directory mask'] || '0775') : '0775';
+    document.getElementById('share-inherit-acls').checked = share ? (share.params['inherit acls'] !== 'no') : true;
+    document.getElementById('share-guest-only').checked = share ? (share.params['guest only'] === 'yes') : false;
+
+    toggleRecycleInfo();
     modal.style.display = 'block';
 }
+
+function toggleRecycleInfo() {
+    const isChecked = document.getElementById('share-recycle').checked;
+    document.getElementById('recycle-info').style.display = isChecked ? 'block' : 'none';
+}
+
+document.getElementById('share-recycle').addEventListener('change', toggleRecycleInfo);
 
 function closeShareModal() {
     document.getElementById('share-modal').style.display = 'none';
@@ -84,8 +101,14 @@ document.getElementById('share-form').onsubmit = async (e) => {
         is_recycle: document.getElementById('share-recycle').checked,
         params: {
             'read only': document.getElementById('share-readonly').checked ? 'yes' : 'no',
-            'guest ok': 'yes',
-            'browseable': 'yes'
+            'guest ok': document.getElementById('share-guest').checked ? 'yes' : 'no',
+            'browseable': document.getElementById('share-browseable').checked ? 'yes' : 'no',
+            'create mask': document.getElementById('share-create-mask').value,
+            'directory mask': document.getElementById('share-dir-mask').value,
+            'force create mode': document.getElementById('share-create-mask').value,
+            'force directory mode': document.getElementById('share-dir-mask').value,
+            'inherit acls': document.getElementById('share-inherit-acls').checked ? 'yes' : 'no',
+            'guest only': document.getElementById('share-guest-only').checked ? 'yes' : 'no'
         }
     };
 
@@ -114,6 +137,32 @@ async function deleteShare(name) {
 
     if (res.ok) loadShares();
 }
+
+async function loadGlobalConfig() {
+    const res = await fetch('/api/global');
+    if (res.status === 401) return;
+    const data = await res.json();
+    const form = document.getElementById('global-form');
+    for (const key in data.params) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = data.params[key];
+    }
+}
+
+document.getElementById('global-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const params = {};
+    formData.forEach((value, key) => params[key] = value);
+
+    const res = await fetch('/api/global/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ params })
+    });
+
+    if (res.ok) alert('Глобальные настройки сохранены');
+};
 
 async function loadUsers() {
     try {

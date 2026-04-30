@@ -18,6 +18,7 @@
             <div class="nav-item active" onclick="showTab('dashboard', this)">Дашборд</div>
             <div class="nav-item" onclick="showTab('shares', this)">Общие ресурсы</div>
             <div class="nav-item" onclick="showTab('users', this)">Пользователи</div>
+            <div class="nav-item" onclick="showTab('global', this)">Настройки сервера</div>
             <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid #e2e8f0; margin-top: 2rem; padding-top: 1.5rem;">Выход</div>
         </nav>
         <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569;">
@@ -85,6 +86,45 @@
                 </table>
             </div>
         </div>
+
+        <!-- Вкладка Глобальные настройки -->
+        <div id="tab-global" class="tab-content" style="display:none;">
+            <header><h1>Глобальные настройки Samba</h1></header>
+            <div class="content-panel">
+                <div class="panel-header"><h2>Секция [global]</h2></div>
+                <form id="global-form" style="padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h3>Идентификация</h3>
+                        <div class="form-group">
+                            <label>Server String</label>
+                            <input type="text" name="server string">
+                        </div>
+                        <div class="form-group">
+                            <label>Workgroup</label>
+                            <input type="text" name="workgroup">
+                        </div>
+                        <div class="form-group">
+                            <label>Security</label>
+                            <input type="text" name="security">
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Протоколы и Сеть</h3>
+                        <div class="form-group">
+                            <label>Min Protocol</label>
+                            <input type="text" name="server min protocol">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Protocol</label>
+                            <input type="text" name="server max protocol">
+                        </div>
+                    </div>
+                    <div style="grid-column: span 2; display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn-action" style="background: #10b981; color: white; border: none;">Применить глобальные настройки</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </main>
 
     <!-- Модальное окно ресурса -->
@@ -107,14 +147,45 @@
                     <label>Комментарий</label>
                     <input type="text" id="share-comment" placeholder="Публичная папка">
                 </div>
-                <div style="display: flex; gap: 2rem; margin-top: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                        <input type="checkbox" id="share-readonly" checked> Только чтение (read only)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                        <input type="checkbox" id="share-guest" checked> Гостевой доступ (guest ok)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                        <input type="checkbox" id="share-browseable" checked> Видимость (browseable)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
                         <input type="checkbox" id="share-recycle"> Корзина (vfs recycle)
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" id="share-readonly" checked> Только чтение
-                    </label>
                 </div>
+                <div id="recycle-info" style="display:none; margin-top: 1rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.75rem; color: #64748b; border: 1px dashed #e2e8f0;">
+                    Будут применены ваши корпоративные стандарты: <b>.recycle/%U</b> (или <b>.recycle/guest</b> для гостей), исключения <b>*.bak, Thumbs.db</b> и др.
+                </div>
+
+                <details style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                    <summary style="cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6;">Дополнительные параметры (маски, права)</summary>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div class="form-group">
+                            <label>Create Mask</label>
+                            <input type="text" id="share-create-mask" placeholder="0664">
+                        </div>
+                        <div class="form-group">
+                            <label>Directory Mask</label>
+                            <input type="text" id="share-dir-mask" placeholder="0775">
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="share-inherit-acls" checked> Inherit ACLs
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                            <input type="checkbox" id="share-guest-only"> Guest Only
+                        </label>
+                    </div>
+                </details>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn-action" onclick="closeShareModal()">Отмена</button>
                     <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Сохранить</button>
