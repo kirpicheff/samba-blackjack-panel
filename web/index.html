@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samba Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <aside>
+        <div class="sidebar-header">
+            <div class="logo-text">SAMBA<span>ADMIN</span></div>
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="showTab('dashboard', this)">Дашборд</div>
+            <div class="nav-item" onclick="showTab('shares', this)">Общие ресурсы</div>
+            <div class="nav-item" onclick="showTab('users', this)">Пользователи</div>
+        </nav>
+        <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569;">
+            Версия 1.1.0-stable
+        </div>
+    </aside>
+
+    <main>
+        <!-- Вкладка Дашборд -->
+        <div id="tab-dashboard" class="tab-content">
+            <header>
+                <h1>Обзор сервера</h1>
+                <div id="status-badge" class="badge online">Статус: Работает</div>
+            </header>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Активные сессии</div>
+                    <div class="stat-value" id="session-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Файлов открыто</div>
+                    <div class="stat-value" id="file-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Версия Samba</div>
+                    <div class="stat-value mono" id="samba-version" style="font-size: 1rem;">-</div>
+                </div>
+            </div>
+
+            <div class="content-panel">
+                <div class="panel-header"><h2>Текущие подключения</h2></div>
+                <table>
+                    <thead><tr><th>Пользователь</th><th>Удаленный хост</th><th>Протокол</th></tr></thead>
+                    <tbody id="sessions-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Вкладка Ресурсы -->
+        <div id="tab-shares" class="tab-content" style="display:none;">
+            <header><h1>Управление ресурсами</h1></header>
+            <div class="content-panel">
+                <div class="panel-header"><h2>Список общих папок</h2></div>
+                <table>
+                    <thead><tr><th>Имя</th><th>Путь</th><th>Корзина</th><th>Действия</th></tr></thead>
+                    <tbody id="shares-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Вкладка Пользователи -->
+        <div id="tab-users" class="tab-content" style="display:none;">
+            <header>
+                <h1>Управление пользователями</h1>
+                <button class="btn-action" style="background: #2563eb; color: white; border: none;">+ Добавить пользователя</button>
+            </header>
+            <div class="content-panel">
+                <div class="panel-header"><h2>Зарегистрированные аккаунты</h2></div>
+                <table>
+                    <thead><tr><th>Логин</th><th>UID</th><th>Полное имя</th><th>Действия</th></tr></thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
