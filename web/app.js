@@ -628,7 +628,86 @@ function showSettingsSection(sectionId, element) {
     if (section) section.style.display = 'block';
     if (element) element.classList.add('active');
     
+    if (sectionId === 'ad') checkADStatus();
     if (window.lucide) lucide.createIcons();
+}
+
+async function checkADStatus() {
+    try {
+        const res = await fetch('/api/ad/status');
+        const data = await res.json();
+        const badge = document.getElementById('ad-status-badge');
+        const infoBox = document.getElementById('ad-info-box');
+        const reqBox = document.getElementById('ad-requirements-box');
+        
+        if (badge) {
+            if (data.joined) {
+                badge.innerText = 'ПОДКЛЮЧЕНО';
+                badge.className = 'badge online';
+                badge.style.background = '';
+                badge.style.color = '';
+                if (reqBox) reqBox.style.display = 'none';
+            } else {
+                badge.innerText = 'НЕ В ДОМЕНЕ';
+                badge.className = 'badge offline';
+                badge.style.background = '';
+                badge.style.color = '';
+                if (reqBox) reqBox.style.display = 'flex';
+            }
+        }
+        
+        if (infoBox) {
+            if (data.info) {
+                infoBox.innerText = data.info;
+                infoBox.style.display = 'block';
+                infoBox.style.background = data.joined ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                infoBox.style.color = data.joined ? '#065f46' : '#991b1b';
+                infoBox.style.border = data.joined ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+            } else {
+                infoBox.style.display = 'none';
+            }
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function joinAD() {
+    const realm = document.getElementById('ad-realm').value;
+    const admin = document.getElementById('ad-admin-user').value;
+    const pass = document.getElementById('ad-admin-pass').value;
+    
+    if (!realm || !admin || !pass) {
+        alert('Пожалуйста, заполните все поля для ввода в домен');
+        return;
+    }
+    
+    if (!confirm(`Вы действительно хотите ввести сервер в домен ${realm}? Это изменит конфигурацию Samba.`)) return;
+    
+    const btn = event.target.closest('button');
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" style="width:16px; animation: spin 1s linear infinite;"></i> Выполняю...';
+    btn.disabled = true;
+    
+    try {
+        const res = await fetch('/api/ad/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ realm, admin, password: pass })
+        });
+        
+        if (res.ok) {
+            alert('Сервер успешно введен в домен!');
+            checkADStatus();
+        } else {
+            const error = await res.text();
+            alert('Ошибка при вводе в домен:\n' + error);
+        }
+    } catch (e) {
+        alert('Ошибка связи с сервером: ' + e.message);
+    } finally {
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+        if (window.lucide) lucide.createIcons();
+    }
 }
 
 setInterval(updateStatus, 3000);

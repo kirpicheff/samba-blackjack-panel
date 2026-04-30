@@ -15,6 +15,17 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+type ADStatus struct {
+	Joined bool   `json:"joined"`
+	Info   string `json:"info"`
+}
+
+type ADJoinRequest struct {
+	Realm    string `json:"realm"`
+	Admin    string `json:"admin"`
+	Password string `json:"password"`
+}
+
 // Константы путей (на Linux это /etc/samba/smb.conf)
 const smbConfPath = "/etc/samba/smb.conf"
 const devSmbConfPath = "smb.conf.dev" // для тестов на Windows
@@ -809,6 +820,113 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+
+// getADStatusHandler проверяет статус подключения к домену
+func getADStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if os.PathSeparator == '\\' {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ADStatus{Joined: false, Info: "Mock mode (Windows)"})
+		return
+	}
+
+	cmd := exec.Command("net", "ads", "testjoin")
+	output, err := cmd.CombinedOutput()
+	
+	status := ADStatus{
+		Joined: err == nil,
+		Info:   strings.TrimSpace(string(output)),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
+// joinADHandler выполняет процедуру ввода в домен
+func joinADHandler(w http.ResponseWriter, r *http.Request) {
+	var req ADJoinRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Mock: Joined successfully (Windows)"))
+		return
+	}
+
+	// 1. Обновляем smb.conf с параметрами AD и IDMAP
+	path := smbConfPath
+	cfg, err := ini.Load(path)
+	if err != nil {
+		http.Error(w, "Failed to load smb.conf", 500)
+		return
+	}
+
+	section := cfg.Section("global")
+	section.Key("security").SetValue("ads")
+	section.Key("realm").SetValue(strings.ToUpper(req.Realm))
+	section.Key("workgroup").SetValue(strings.Split(req.Realm, ".")[0])
+	
+	// Применяем настройки idmap из запроса пользователя
+	section.Key("idmap config * : backend").SetValue("tdb")
+	section.Key("idmap config * : range").SetValue("3000-7999")
+	section.Key("idmap config " + strings.Split(req.Realm, ".")[0] + " : backend").SetValue("rid")
+	section.Key("idmap config " + strings.Split(req.Realm, ".")[0] + " : range").SetValue("10000-9999999")
+	
+	// Оптимальные параметры для AD
+	section.Key("kerberos method").SetValue("secrets and keytab")
+	section.Key("winbind use default domain").SetValue("yes")
+	section.Key("winbind enum users").SetValue("yes")
+	section.Key("winbind enum groups").SetValue("yes")
+	
+	// Дополнительные параметры ACL и прав из запроса пользователя
+	section.Key("vfs objects").SetValue("acl_xattr")
+	section.Key("map acl inherit").SetValue("yes")
+	section.Key("inherit owner").SetValue("yes")
+	section.Key("inherit permissions").SetValue("yes")
+	section.Key("acl map full control").SetValue("false")
+	section.Key("nt acl support").SetValue("yes")
+	section.Key("acl group control").SetValue("true")
+	section.Key("dos filemode").SetValue("yes")
+	section.Key("enable privileges").SetValue("yes")
+	section.Key("store dos attributes").SetValue("yes")
+	section.Key("map read only").SetValue("Permissions")
+	
+	// Группы администраторов (шаблон)
+	workgroup := strings.Split(req.Realm, ".")[0]
+	section.Key("admin users").SetValue("@\"" + workgroup + "\\Администраторы домена\"")
+
+	createConfigBackup()
+	cfg.SaveTo(path)
+
+	// 2. Синхронизация времени (AD очень чувствителен к этому)
+	// Пытаемся найти контроллер домена через realm
+	exec.Command("net", "ads", "workgroup").Run() // для инициализации
+	timeCmd := exec.Command("net", "ads", "time", "set", "-S", req.Realm, "-U", req.Admin+"%"+req.Password)
+	timeCmd.Run()
+
+	// 3. Получаем Kerberos тикет
+	kinitCmd := exec.Command("sh", "-c", fmt.Sprintf("echo '%s' | kinit %s@%s", req.Password, req.Admin, strings.ToUpper(req.Realm)))
+	if output, err := kinitCmd.CombinedOutput(); err != nil {
+		http.Error(w, "Kerberos error: "+string(output), 500)
+		return
+	}
+
+	// 4. Присоединяем к домену
+	joinCmd := exec.Command("net", "ads", "join", "-U", req.Admin+"%"+req.Password)
+	if output, err := joinCmd.CombinedOutput(); err != nil {
+		http.Error(w, "Join error: "+string(output), 500)
+		return
+	}
+
+	// 5. Перезапуск сервисов
+	exec.Command("systemctl", "restart", "smbd", "nmbd", "winbind").Run()
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Successfully joined the domain"))
+}
+
 func main() {
 	// Если мы на Windows, создадим тестовый конфиг для разработки
 	if _, err := os.Stat(smbConfPath); os.IsNotExist(err) {
@@ -839,6 +957,8 @@ func main() {
 	http.HandleFunc("/api/users", authMiddleware(getUsers))
 	http.HandleFunc("/api/users/save", authMiddleware(saveUserHandler))
 	http.HandleFunc("/api/users/delete", authMiddleware(deleteUserHandler))
+	http.HandleFunc("/api/ad/status", authMiddleware(getADStatusHandler))
+	http.HandleFunc("/api/ad/join", authMiddleware(joinADHandler))
 
 	fs := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fs)

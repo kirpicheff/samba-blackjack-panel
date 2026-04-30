@@ -295,15 +295,67 @@
 
                     <div id="sec-ad" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="database"></i> Active Directory / Domain</h2></div>
+                            <div class="panel-header">
+                                <h2><i data-lucide="database"></i> Active Directory / Domain</h2>
+                                <div id="ad-status-badge" class="badge" style="background: #f1f5f9; color: #64748b;">
+                                    Проверка статуса...
+                                </div>
+                            </div>
                             <div style="padding: 2rem;">
-                                <div class="form-group"><label>Realm (Domain Name)</label><input type="text" name="realm" placeholder="EXAMPLE.COM"></div>
-                                <div class="form-group"><label>Kerberos Method</label><input type="text" name="kerberos method" placeholder="secrets and keytab"></div>
-                                <div class="form-group"><label>Winbind Enum Users</label>
-                                    <select name="winbind enum users">
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
-                                    </select>
+                                <div id="ad-info-box" style="margin-bottom: 2rem; padding: 1rem; border-radius: 12px; font-size: 0.85rem; display: none;"></div>
+
+                                <div id="ad-requirements-box" style="margin-bottom: 2rem; padding: 1.25rem; background: rgba(245, 158, 11, 0.05); border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.2); display: flex; gap: 1rem; align-items: flex-start;">
+                                    <i data-lucide="info" style="color: #d97706; width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+                                    <div>
+                                        <h4 style="color: #b45309; font-size: 0.85rem; margin-bottom: 4px; font-weight: 700;">Требования системы</h4>
+                                        <p style="font-size: 0.8rem; color: #d97706; line-height: 1.5;">
+                                            Для работы с доменом на сервере должны быть установлены пакеты:<br>
+                                            <code style="background: rgba(180, 83, 9, 0.1); padding: 2px 4px; border-radius: 4px; font-weight: 600;">krb5-user</code>, 
+                                            <code style="background: rgba(180, 83, 9, 0.1); padding: 2px 4px; border-radius: 4px; font-weight: 600;">winbind</code>, 
+                                            <code style="background: rgba(180, 83, 9, 0.1); padding: 2px 4px; border-radius: 4px; font-weight: 600;">libnss-winbind</code>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Realm (Полное имя домена)</label>
+                                    <input type="text" id="ad-realm" name="realm" placeholder="CORP.EXAMPLE.COM">
+                                </div>
+
+                                <div style="background: rgba(59, 130, 246, 0.05); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.1); margin-top: 1rem;">
+                                    <h3 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--accent-blue);">Присоединение к домену</h3>
+                                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                                        Для ввода сервера в домен требуются учетные данные администратора домена. 
+                                        Эти данные <b>не сохраняются</b> в системе и используются только один раз.
+                                    </p>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                        <div class="form-group">
+                                            <label>Администратор домена</label>
+                                            <input type="text" id="ad-admin-user" placeholder="administrator" value="administrator">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Пароль администратора</label>
+                                            <input type="password" id="ad-admin-pass" placeholder="••••••••">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-action btn-primary" style="width: 100%; margin-top: 1rem;" onclick="joinAD()">
+                                        <i data-lucide="link"></i> Присоединиться к домену
+                                    </button>
+                                </div>
+
+                                <div style="margin-top: 2rem;">
+                                    <h3 style="font-size: 0.9rem; margin-bottom: 1rem;">Дополнительные параметры Winbind</h3>
+                                    <div class="form-group">
+                                        <label>Kerberos Method</label>
+                                        <input type="text" name="kerberos method" value="secrets and keytab">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Winbind Enum Users</label>
+                                        <select name="winbind enum users">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
