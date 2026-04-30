@@ -71,6 +71,11 @@ function openShareModal(share = null) {
     document.getElementById('share-guest').checked = share ? (share.params['guest ok'] !== 'no') : true;
     document.getElementById('share-browseable').checked = share ? (share.params['browseable'] !== 'no') : true;
 
+    // Recycle fields
+    document.getElementById('share-recycle-repo').value = share ? (share.params['recycle:repository'] || '') : '';
+    document.getElementById('share-recycle-exclude').value = share ? (share.params['recycle:exclude'] || '') : '';
+    document.getElementById('share-recycle-exclude-dir').value = share ? (share.params['recycle:exclude_dir'] || '') : '';
+
     // Advanced fields
     document.getElementById('share-create-mask').value = share ? (share.params['create mask'] || '0664') : '0664';
     document.getElementById('share-dir-mask').value = share ? (share.params['directory mask'] || '0775') : '0775';
@@ -83,7 +88,19 @@ function openShareModal(share = null) {
 
 function toggleRecycleInfo() {
     const isChecked = document.getElementById('share-recycle').checked;
-    document.getElementById('recycle-info').style.display = isChecked ? 'block' : 'none';
+    const isGuest = document.getElementById('share-guest').checked;
+    const info = document.getElementById('recycle-info');
+    info.style.display = isChecked ? 'block' : 'none';
+
+    if (isChecked) {
+        const repo = document.getElementById('share-recycle-repo');
+        const exclude = document.getElementById('share-recycle-exclude');
+        const excludeDir = document.getElementById('share-recycle-exclude-dir');
+
+        if (!repo.value) repo.value = isGuest ? '.recycle/guest' : '.recycle/%U';
+        if (!exclude.value) exclude.value = '*.tmp *.temp ~$* *.bak Thumbs.db';
+        if (!excludeDir.value) excludeDir.value = '/tmp /cache .recycle';
+    }
 }
 
 document.getElementById('share-recycle').addEventListener('change', toggleRecycleInfo);
@@ -108,7 +125,10 @@ document.getElementById('share-form').onsubmit = async (e) => {
             'force create mode': document.getElementById('share-create-mask').value,
             'force directory mode': document.getElementById('share-dir-mask').value,
             'inherit acls': document.getElementById('share-inherit-acls').checked ? 'yes' : 'no',
-            'guest only': document.getElementById('share-guest-only').checked ? 'yes' : 'no'
+            'guest only': document.getElementById('share-guest-only').checked ? 'yes' : 'no',
+            'recycle:repository': document.getElementById('share-recycle-repo').value,
+            'recycle:exclude': document.getElementById('share-recycle-exclude').value,
+            'recycle:exclude_dir': document.getElementById('share-recycle-exclude-dir').value
         }
     };
 

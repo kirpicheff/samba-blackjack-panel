@@ -149,18 +149,27 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 	if share.IsRecycle {
 		section.Key("vfs objects").SetValue("acl_xattr recycle")
 		
-		repo := ".recycle/%U"
-		if share.Params["guest ok"] == "yes" {
-			repo = ".recycle/guest"
+		repo := share.Params["recycle:repository"]
+		if repo == "" {
+			repo = ".recycle/%U"
+			if share.Params["guest ok"] == "yes" {
+				repo = ".recycle/guest"
+			}
 		}
 		
+		exclude := share.Params["recycle:exclude"]
+		if exclude == "" { exclude = "*.tmp *.temp ~$* *.bak Thumbs.db" }
+
+		excludeDir := share.Params["recycle:exclude_dir"]
+		if excludeDir == "" { excludeDir = "/tmp /cache .recycle" }
+
 		section.Key("recycle:repository").SetValue(repo)
 		section.Key("recycle:keeptree").SetValue("yes")
 		section.Key("recycle:versions").SetValue("yes")
 		section.Key("recycle:touch").SetValue("yes")
 		section.Key("recycle:directory_mode").SetValue("0770")
-		section.Key("recycle:exclude").SetValue("*.tmp *.temp ~$* *.bak Thumbs.db")
-		section.Key("recycle:exclude_dir").SetValue("/tmp /cache .recycle")
+		section.Key("recycle:exclude").SetValue(exclude)
+		section.Key("recycle:exclude_dir").SetValue(excludeDir)
 	} else {
 		section.Key("vfs objects").SetValue("acl_xattr")
 		// Удаляем все параметры recycle:*

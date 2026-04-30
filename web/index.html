@@ -213,8 +213,20 @@
                         <input type="checkbox" id="share-recycle"> Корзина (vfs recycle)
                     </label>
                 </div>
-                <div id="recycle-info" style="display:none; margin-top: 1rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.75rem; color: #64748b; border: 1px dashed #e2e8f0;">
-                    Будут применены ваши корпоративные стандарты: <b>.recycle/%U</b> (или <b>.recycle/guest</b> для гостей), исключения <b>*.bak, Thumbs.db</b> и др.
+                <div id="recycle-info" style="display:none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
+                    <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 600;">Детальные настройки корзины:</p>
+                    <div class="form-group">
+                        <label style="font-size: 0.7rem;">Путь (Repository)</label>
+                        <input type="text" id="share-recycle-repo" placeholder=".recycle/%U" style="font-size: 0.8rem; padding: 0.5rem;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 0.7rem;">Исключить файлы (Exclude)</label>
+                        <input type="text" id="share-recycle-exclude" placeholder="*.tmp *.bak" style="font-size: 0.8rem; padding: 0.5rem;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.7rem;">Исключить папки (Exclude Dir)</label>
+                        <input type="text" id="share-recycle-exclude-dir" placeholder="/tmp /cache" style="font-size: 0.8rem; padding: 0.5rem;">
+                    </div>
                 </div>
 
                 <details style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
