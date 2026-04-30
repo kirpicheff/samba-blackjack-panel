@@ -33,6 +33,7 @@ func main() {
 	http.HandleFunc("/api/groups/member", authMiddleware(toggleGroupMemberHandler))
 
 	http.HandleFunc("/api/logs", authMiddleware(getLogsHandler))
+	http.HandleFunc("/api/ws/logs", authMiddleware(wsLogsHandler))
 	http.HandleFunc("/api/audit", authMiddleware(getAuditLogsHandler))
 	http.HandleFunc("/api/disk/usage", authMiddleware(getDiskUsageHandler))
 	http.HandleFunc("/api/status", authMiddleware(getSambaStatus))
@@ -40,6 +41,8 @@ func main() {
 	http.HandleFunc("/api/automation", authMiddleware(getAutomationHandler))
 	http.HandleFunc("/api/automation/save", authMiddleware(saveAutomationHandler))
 	http.HandleFunc("/api/maintenance/clear-recycle", authMiddleware(clearRecycleBinsHandler))
+	http.HandleFunc("/api/fs/permissions", authMiddleware(getPathPermissionsHandler))
+	http.HandleFunc("/api/fs/permissions/save", authMiddleware(updatePathPermissionsHandler))
 
 	http.HandleFunc("/api/ad/status", authMiddleware(getADStatusHandler))
 	http.HandleFunc("/api/ad/join", authMiddleware(joinADHandler))

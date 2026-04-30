@@ -109,3 +109,11 @@ type AuditEntry struct {
 	Action    string `json:"action"`
 	File      string `json:"file"`
 }
+
+type PathPermissions struct {
+	Path  string `json:"path"`
+	Owner string `json:"owner"`
+	Group string `json:"group"`
+	Mode  string `json:"mode"`
+	ACLs  string `json:"acls,omitempty"`
+}

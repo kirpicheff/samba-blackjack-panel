@@ -275,7 +275,15 @@
                                     </select>
                                 </div>
                                 <div class="form-group"><label>Guest Account</label><input type="text" name="guest account" placeholder="nobody"></div>
-                                <div class="form-group"><label>Hosts Allow (Белый список IP)</label><input type="text" name="hosts allow" placeholder="192.168.1. 127."></div>
+                                <div class="form-group">
+                                    <label>Hosts Allow (Белый список IP)</label>
+                                    <input type="text" name="hosts allow" placeholder="192.168.1.0/24 10.0.0.5">
+                                    <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">Поддерживаются IP, подсети (192.168.1.) и CIDR (192.168.1.0/24)</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Hosts Deny (Черный список IP)</label>
+                                    <input type="text" name="hosts deny" placeholder="10.0.0.0/8">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -587,6 +595,7 @@
                 <div class="modal-tab active" onclick="showModalTab('general')">Основные</div>
                 <div class="modal-tab" onclick="showModalTab('access')">Доступ и Права</div>
                 <div class="modal-tab" onclick="showModalTab('automation-tab')">Автоматизация</div>
+                <div class="modal-tab" onclick="showModalTab('permissions')">Права ФС</div>
             </div>
 
             <form id="share-form" style="display: flex; flex-direction: column; flex-grow: 1;">
@@ -621,6 +630,21 @@
                             <div class="form-group"><label>Маска файлов</label><input type="text" id="share-create-mask" value="0664"></div>
                             <div class="form-group"><label>Маска папок</label><input type="text" id="share-dir-mask" value="0775"></div>
                         </div>
+
+                        <div style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
+                            <h4 style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-secondary);">Ограничения по IP</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label>Hosts Allow</label>
+                                    <input type="text" id="share-hosts-allow" placeholder="192.168.1.0/24">
+                                    <p style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px;">Пример: 192.168.1.0/24, 10.0.0.5</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Hosts Deny</label>
+                                    <input type="text" id="share-hosts-deny" placeholder="10.0.0.0/8">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div id="m-tab-automation-tab" class="m-tab-content" style="display:none;">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
@@ -637,6 +661,62 @@
                         <div id="shadow-info" style="display:none; margin-top: 1rem; font-size: 0.85rem; color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
                             <i data-lucide="info" style="width: 14px; vertical-align: middle; margin-right: 4px;"></i> Снимки создаются по глобальному расписанию.
                         </div>
+                    </div>
+                    <div id="m-tab-permissions" class="m-tab-content" style="display:none;">
+                        <div style="background: rgba(245, 158, 11, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.2); margin-bottom: 1.5rem; font-size: 0.8rem; color: #b45309;">
+                            <i data-lucide="alert-triangle" style="width: 16px; vertical-align: middle; margin-right: 4px;"></i> 
+                            Изменение владельца или прав может повлиять на доступ пользователей к файлам. Будьте осторожны.
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group"><label>Владелец (User)</label><input type="text" id="fs-owner" placeholder="root"></div>
+                            <div class="form-group"><label>Группа (Group)</label><input type="text" id="fs-group" placeholder="root"></div>
+                        </div>
+                        <div class="form-group"><label>Права (Octal Mode)</label><input type="text" id="fs-mode" placeholder="0755" oninput="updatePermChecks(this.value)"></div>
+                        
+                        <div class="permissions-visual" style="margin-bottom: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 16px; border: 1px solid var(--border-color);">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                <thead>
+                                    <tr style="color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">
+                                        <th style="text-align: left; padding: 0 0 1rem 0.75rem; width: 40%;">Область</th>
+                                        <th style="text-align: center; padding-bottom: 1rem;">Чтение</th>
+                                        <th style="text-align: center; padding-bottom: 1rem;">Запись</th>
+                                        <th style="text-align: center; padding-bottom: 1rem;">Выполнение</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="perm-matrix">
+                                    <tr style="border-top: 1px solid #f1f5f9;">
+                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong>Владелец</strong></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="u" data-bit="4" onchange="updateOctalFromChecks()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="u" data-bit="2" onchange="updateOctalFromChecks()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="u" data-bit="1" onchange="updateOctalFromChecks()"></td>
+                                    </tr>
+                                    <tr style="border-top: 1px solid #f1f5f9;">
+                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong>Группа</strong></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="g" data-bit="4" onchange="updateOctalFromChecks()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="g" data-bit="2" onchange="updateOctalFromChecks()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="g" data-bit="1" onchange="updateOctalFromChecks()"></td>
+                                    </tr>
+                                    <tr style="border-top: 1px solid #f1f5f9;">
+                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong>Остальные</strong></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="o" data-bit="4" onchange="updateOctalFromChecks()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="o" data-bit="2" onchange="updateOctalFromChecks()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="o" data-bit="1" onchange="updateOctalFromChecks()"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <label class="switch-label" style="margin-bottom: 1.5rem;"><input type="checkbox" id="fs-recursive"> <span>Применить рекурсивно</span></label>
+
+                        <div style="margin-top: 1rem;">
+                            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Текущие ACL (getfacl)</h4>
+                            <pre id="fs-acl-output" style="background: #f1f5f9; padding: 1rem; border-radius: 12px; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: #475569; max-height: 150px; overflow-y: auto;"></pre>
+                        </div>
+                        
+                        <button type="button" class="btn-action btn-outline" style="width: 100%; margin-top: 1rem;" onclick="savePathPermissions()">
+                            Применить права к папке
+                        </button>
                     </div>
                 </div>
                 <div class="modal-footer" style="padding: 1.5rem 2rem; background: #f8fafc; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid #f1f5f9;">
@@ -655,7 +735,7 @@
                 <div class="close" onclick="closeUserModal()">&times;</div>
             </div>
             <form id="user-form" style="padding: 2rem;">
-                <div class="form-group"><label>Имя пользователя</label><input type="text" id="user-username" required></div>
+                <div class="form-group"><label>Имя пользователя</label><input type="text" id="user-username" required autocomplete="username"></div>
                 <div class="form-group"><label>Пароль Samba</label><input type="password" id="user-password" required autocomplete="new-password"></div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn-action btn-outline" onclick="closeUserModal()">Отмена</button>
@@ -673,7 +753,7 @@
                 <div class="close" onclick="closePasswordModal()">&times;</div>
             </div>
             <form id="password-form" style="padding: 2rem;">
-                <input type="hidden" id="pass-username">
+                <input type="text" id="pass-username" style="display:none;" autocomplete="username">
                 <div class="form-group">
                     <label>Новый пароль для <span id="pass-user-display" style="font-weight:bold; color: var(--accent-blue);"></span></label>
                     <input type="password" id="new-password" required autocomplete="new-password">
@@ -746,8 +826,8 @@
                 <div class="close" onclick="closeAdminModal()">&times;</div>
             </div>
             <form id="admin-form" style="padding: 2rem;">
-                <div class="form-group"><label>Логин</label><input type="text" id="new-admin-user" required></div>
-                <div class="form-group"><label>Пароль</label><input type="password" id="new-admin-pass" required></div>
+                <div class="form-group"><label>Логин</label><input type="text" id="new-admin-user" required autocomplete="username"></div>
+                <div class="form-group"><label>Пароль</label><input type="password" id="new-admin-pass" required autocomplete="new-password"></div>
                 <div class="form-group">
                     <label>Роль</label>
                     <select id="new-admin-role">

@@ -9,9 +9,15 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/gorilla/websocket"
 	"gopkg.in/ini.v1"
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 func getSambaStatus(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command("smbstatus", "--json")
@@ -232,12 +238,54 @@ func controlDiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 func getLogsHandler(w http.ResponseWriter, r *http.Request) {
 	logFile := "/var/log/samba/log.smbd"
 	if os.PathSeparator == '\\' {
-		w.Write([]byte("MOCK LOGS\n"))
+		w.Write([]byte("MOCK LOGS: [2026/04/30 15:30:00] smbd version 4.15.13 started.\n[2026/04/30 15:31:05] Request from 192.168.1.50 accepted.\n"))
 		return
 	}
 	cmd := exec.Command("tail", "-n", "200", logFile)
 	output, _ := cmd.CombinedOutput()
 	w.Write(output)
+}
+
+func wsLogsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	logFile := "/var/log/samba/log.smbd"
+	if os.PathSeparator == '\\' {
+		// Mock streaming for Windows
+		for i := 0; i < 10; i++ {
+			msg := fmt.Sprintf("[LIVE MOCK] New log entry %d\n", i)
+			if err := conn.WriteMessage(websocket.TextMessage, []byte(msg)); err != nil {
+				return
+			}
+			time.Sleep(2 * time.Second)
+		}
+		return
+	}
+
+	cmd := exec.Command("tail", "-f", "-n", "100", logFile)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+	if err := cmd.Start(); err != nil {
+		return
+	}
+	defer cmd.Process.Kill()
+
+	buf := make([]byte, 1024)
+	for {
+		n, err := stdout.Read(buf)
+		if err != nil {
+			break
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, buf[:n]); err != nil {
+			break
+		}
+	}
 }
 
 func getDiskUsageHandler(w http.ResponseWriter, r *http.Request) {
@@ -320,5 +368,97 @@ func clearRecycleBinsHandler(w http.ResponseWriter, r *http.Request) {
 		if os.PathSeparator == '\\' { continue }
 		exec.Command("sh", "-c", fmt.Sprintf("rm -rf %s/*", fullPath)).Run()
 	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func getPathPermissionsHandler(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "Path is required", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		perms := PathPermissions{
+			Path:  path,
+			Owner: "admin",
+			Group: "admins",
+			Mode:  "0755",
+		}
+		json.NewEncoder(w).Encode(perms)
+		return
+	}
+
+	cmd := exec.Command("stat", "-c", "%U:%G:%a", path)
+	out, err := cmd.Output()
+	if err != nil {
+		http.Error(w, "Failed to get stats: "+err.Error(), 500)
+		return
+	}
+
+	parts := strings.Split(strings.TrimSpace(string(out)), ":")
+	if len(parts) < 3 {
+		http.Error(w, "Invalid stat output", 500)
+		return
+	}
+
+	perms := PathPermissions{
+		Path:  path,
+		Owner: parts[0],
+		Group: parts[1],
+		Mode:  parts[2],
+	}
+
+	// Try to get ACLs if available
+	aclCmd := exec.Command("getfacl", "-cp", path)
+	aclOut, _ := aclCmd.Output()
+	perms.ACLs = string(aclOut)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(perms)
+}
+
+func updatePathPermissionsHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Path      string `json:"path"`
+		Owner     string `json:"owner"`
+		Group     string `json:"group"`
+		Mode      string `json:"mode"`
+		Recursive bool   `json:"recursive"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Chown
+	if req.Owner != "" && req.Group != "" {
+		args := []string{req.Owner + ":" + req.Group, req.Path}
+		if req.Recursive {
+			args = append([]string{"-R"}, args...)
+		}
+		if out, err := exec.Command("chown", args...).CombinedOutput(); err != nil {
+			http.Error(w, "Chown error: "+string(out), 500)
+			return
+		}
+	}
+
+	// Chmod
+	if req.Mode != "" {
+		args := []string{req.Mode, req.Path}
+		if req.Recursive {
+			args = append([]string{"-R"}, args...)
+		}
+		if out, err := exec.Command("chmod", args...).CombinedOutput(); err != nil {
+			http.Error(w, "Chmod error: "+string(out), 500)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusOK)
 }

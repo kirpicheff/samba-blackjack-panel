@@ -178,6 +178,16 @@ function openShareModal(share = null) {
     setVal('share-dir-mask', share ? (share.params['directory mask'] || '0775') : '0775');
     setCheck('share-inherit-acls', share ? (share.params['inherit acls'] !== 'no') : true);
     setCheck('share-guest-only', share ? (share.params['guest only'] === 'yes') : false);
+    setVal('share-hosts-allow', share ? (share.params['hosts allow'] || '') : '');
+    setVal('share-hosts-deny', share ? (share.params['hosts deny'] || '') : '');
+
+    // Reset FS permissions tab fields
+    setVal('fs-owner', '');
+    setVal('fs-group', '');
+    setVal('fs-mode', '');
+    setCheck('fs-recursive', false);
+    const aclOut = document.getElementById('fs-acl-output');
+    if (aclOut) aclOut.innerText = '';
 
     toggleRecycleInfo();
     toggleAuditInfo();
@@ -194,6 +204,107 @@ function showModalTab(tabId) {
     if (tabId === 'general') { if(tabs[0]) tabs[0].classList.add('active'); const el = document.getElementById('m-tab-general'); if(el) el.style.display = 'block'; }
     if (tabId === 'access') { if(tabs[1]) tabs[1].classList.add('active'); const el = document.getElementById('m-tab-access'); if(el) el.style.display = 'block'; }
     if (tabId === 'automation-tab') { if(tabs[2]) tabs[2].classList.add('active'); const el = document.getElementById('m-tab-automation-tab'); if(el) el.style.display = 'block'; }
+    if (tabId === 'permissions') { 
+        if(tabs[3]) tabs[3].classList.add('active'); 
+        const el = document.getElementById('m-tab-permissions'); 
+        if(el) el.style.display = 'block';
+        const path = document.getElementById('share-path').value;
+        if (path) loadPathPermissions(path);
+    }
+}
+
+async function loadPathPermissions(path) {
+    const aclOutput = document.getElementById('fs-acl-output');
+    if (aclOutput) aclOutput.innerText = 'Загрузка...';
+
+    try {
+        const res = await fetch(`/api/fs/permissions?path=${encodeURIComponent(path)}`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setVal('fs-owner', data.owner);
+        setVal('fs-group', data.group);
+        setVal('fs-mode', data.mode);
+        updatePermChecks(data.mode);
+        
+        if (aclOutput) aclOutput.innerText = data.acls || 'ACL не настроены или недоступны';
+    } catch (e) {
+        if (aclOutput) aclOutput.innerText = 'Ошибка: ' + e.message;
+    }
+}
+
+function updatePermChecks(mode) {
+    if (!mode) return;
+    // Remove leading 0 if present, take last 3 digits
+    const m = mode.length > 3 ? mode.slice(-3) : mode.padStart(3, '0');
+    const u = parseInt(m[0]);
+    const g = parseInt(m[1]);
+    const o = parseInt(m[2]);
+
+    document.querySelectorAll('.perm-check').forEach(cb => {
+        const type = cb.dataset.type;
+        const bit = parseInt(cb.dataset.bit);
+        let val = 0;
+        if (type === 'u') val = u;
+        else if (type === 'g') val = g;
+        else if (type === 'o') val = o;
+        
+        cb.checked = (val & bit) !== 0;
+    });
+}
+
+function updateOctalFromChecks() {
+    let u = 0, g = 0, o = 0;
+    document.querySelectorAll('.perm-check').forEach(cb => {
+        if (!cb.checked) return;
+        const bit = parseInt(cb.dataset.bit);
+        if (cb.dataset.type === 'u') u += bit;
+        else if (cb.dataset.type === 'g') g += bit;
+        else if (cb.dataset.type === 'o') o += bit;
+    });
+    const mode = `0${u}${g}${o}`;
+    const modeInput = document.getElementById('fs-mode');
+    if (modeInput) modeInput.value = mode;
+}
+
+async function savePathPermissions() {
+    const path = document.getElementById('share-path').value;
+    if (!path) { alert('Сначала укажите путь к папке'); return; }
+
+    const req = {
+        path: path,
+        owner: document.getElementById('fs-owner').value,
+        group: document.getElementById('fs-group').value,
+        mode: document.getElementById('fs-mode').value,
+        recursive: document.getElementById('fs-recursive').checked
+    };
+
+    const btn = event.target;
+    const originalText = btn.innerText;
+    btn.innerText = 'Применяю...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/fs/permissions/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req)
+        });
+
+        if (res.ok) {
+            alert('Права успешно обновлены');
+            loadPathPermissions(path);
+        } else {
+            const err = await res.text();
+            alert('Ошибка: ' + err);
+        }
+    } catch (e) {
+        alert('Ошибка связи с сервером');
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
 }
 
 function toggleRecycleInfo() {
@@ -272,7 +383,9 @@ const initEvents = () => {
                 'guest only': getCheck('share-guest-only') ? 'yes' : 'no',
                 'recycle:repository': getVal('share-recycle-repo'),
                 'recycle:exclude': getVal('share-recycle-exclude'),
-                'recycle:exclude_dir': getVal('share-recycle-exclude-dir')
+                'recycle:exclude_dir': getVal('share-recycle-exclude-dir'),
+                'hosts allow': getVal('share-hosts-allow'),
+                'hosts deny': getVal('share-hosts-deny')
             }
         };
 
@@ -677,19 +790,48 @@ async function loadDiskUsage() {
     } catch (e) { console.error(e); }
 }
 
+let logSocket = null;
+
 async function loadLogs() {
     const output = document.getElementById('log-output');
     if (!output) return;
 
+    if (logSocket && logSocket.readyState === WebSocket.OPEN) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/logs`;
+    
+    if (logSocket) logSocket.close();
+    
+    logSocket = new WebSocket(wsUrl);
+    
+    // При первом подключении загружаем текущий хвост лога
     try {
-        const res = await fetch('/api/logs');
-        const text = await res.text();
+        const initialRes = await fetch('/api/logs');
+        output.innerText = await initialRes.text();
+        output.scrollTop = output.scrollHeight;
+    } catch(e) { console.error(e); }
+
+    logSocket.onmessage = (event) => {
+        output.innerText += event.data;
+        output.scrollTop = output.scrollHeight;
         
-        if (output.innerText !== text) {
-            output.innerText = text;
-            output.scrollTop = output.scrollHeight;
+        // Ограничиваем количество строк (например, последние 1000)
+        const lines = output.innerText.split('\n');
+        if (lines.length > 1000) {
+            output.innerText = lines.slice(lines.length - 1000).join('\n');
         }
-    } catch (e) { console.error(e); }
+    };
+
+    logSocket.onclose = () => {
+        console.log('Log WebSocket closed');
+        logSocket = null;
+    };
+    
+    logSocket.onerror = (err) => {
+        console.error('Log WebSocket error', err);
+        logSocket = null;
+    };
 }
 
 async function loadAuditLogs() {
@@ -721,11 +863,9 @@ async function loadAuditLogs() {
     } catch (e) { console.error(e); }
 }
 
-// Автообновление логов каждые 5 секунд
+// Автообновление данных каждые 5 секунд
 setInterval(() => {
-    const logsTab = document.getElementById('tab-logs');
-    if (logsTab && logsTab.style.display === 'block') loadLogs();
-    
+    // Логи теперь через WebSocket, поэтому их не обновляем здесь
     const auditTab = document.getElementById('tab-audit');
     if (auditTab && auditTab.style.display === 'block') loadAuditLogs();
 }, 5000);
