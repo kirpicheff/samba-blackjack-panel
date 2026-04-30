@@ -1,3 +1,65 @@
+let i18n_data = {};
+let currentLang = localStorage.getItem('panel_lang') || 'ru';
+
+async function loadLanguage(lang) {
+    if (i18n_data[lang]) return;
+    try {
+        const res = await fetch(`/locales/${lang}.json`);
+        i18n_data[lang] = await res.json();
+    } catch (e) {
+        console.error(`Failed to load language: ${lang}`, e);
+        i18n_data[lang] = i18n_data[lang] || {};
+    }
+}
+
+function i18n(key, params = {}) {
+    if (!i18n_data[currentLang]) return key;
+    let text = i18n_data[currentLang][key] || key;
+    for (const p in params) {
+        text = text.replace(`{${p}}`, params[p]);
+    }
+    return text;
+}
+
+async function setLanguage(lang) {
+    await loadLanguage(lang);
+    currentLang = lang;
+    localStorage.setItem('panel_lang', lang);
+    updateStaticTranslations();
+    
+    // Подсветка кнопок переключения языка
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        const isMatch = btn.getAttribute('onclick').includes(`'${lang}'`);
+        btn.style.background = isMatch ? 'rgba(255,255,255,0.2)' : 'transparent';
+    });
+
+    // Update titles and other dynamic parts
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav) {
+        const tabMatch = activeNav.getAttribute('onclick').match(/'([^']+)'/);
+        if (tabMatch) showTab(tabMatch[1], activeNav);
+    }
+    updateServiceStatus();
+}
+
+function updateStaticTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.innerText = i18n(key);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        el.placeholder = i18n(key);
+    });
+}
+
+async function initI18n() {
+    await loadLanguage(currentLang);
+    updateStaticTranslations();
+    // After loading i18n, we can initialize the rest
+    updateStatus();
+}
+
 function showTab(tabName, element) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -8,22 +70,29 @@ function showTab(tabName, element) {
 
     // Update header title
     const titles = { 
-        'dashboard': 'Дашборд', 
-        'shares': 'Общие ресурсы', 
-        'users': 'Пользователи', 
-        'global': 'Настройки сервера',
-        'logs': 'Логи системы',
-        'audit': 'Журнал аудита',
-        'automation': 'Автоматизация'
+        'dashboard': i18n('nav_dashboard'), 
+        'shares': i18n('nav_shares'), 
+        'users': i18n('nav_users'), 
+        'groups': i18n('nav_groups'),
+        'global': i18n('nav_global'),
+        'logs': i18n('nav_logs'),
+        'audit': i18n('nav_audit'),
+        'automation': i18n('nav_automation')
     };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.innerText = titles[tabName] || 'Samba Panel';
+    
+    const pageSubtitle = document.getElementById('page-subtitle');
+    if (pageSubtitle && tabName === 'dashboard') {
+        pageSubtitle.innerText = i18n('page_dashboard_subtitle');
+    }
 
     // Show apply button only on config tabs
     const applyBtn = document.getElementById('btn-apply');
     if (applyBtn) {
         const configTabs = ['shares', 'global'];
         applyBtn.style.display = configTabs.includes(tabName) ? 'block' : 'none';
+        applyBtn.innerText = i18n('btn_apply');
     }
 
     if (tabName === 'shares') loadShares();
@@ -75,10 +144,10 @@ async function updateServiceStatus() {
         
         if (topBadge) {
             if (status === 'active') {
-                topBadge.innerHTML = '<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> SMB: ONLINE';
+                topBadge.innerHTML = `<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> ${i18n('smb_online')}`;
                 topBadge.className = 'badge online';
             } else {
-                topBadge.innerHTML = '<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> SMB: OFFLINE';
+                topBadge.innerHTML = `<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> ${i18n('smb_offline')}`;
                 topBadge.className = 'badge offline';
             }
         }
@@ -86,7 +155,7 @@ async function updateServiceStatus() {
 }
 
 async function controlService(action) {
-    if (!confirm(`Вы уверены, что хотите выполнить команду "${action}" для сервиса Samba?`)) return;
+    if (!confirm(i18n('confirm_service_action', { action }))) return;
     
     try {
         const res = await fetch('/api/service/control', {
@@ -98,7 +167,7 @@ async function controlService(action) {
             updateServiceStatus();
         } else {
             const error = await res.text();
-            alert('Ошибка управления сервисом: ' + error);
+            alert(i18n('error_service_control') + error);
         }
     } catch (e) { console.error(e); }
 }
@@ -114,8 +183,8 @@ async function loadShares() {
         
         data.forEach(share => {
             const recycleStatus = share.is_recycle ? 
-                '<span class="badge online" style="font-size:0.6rem">Активна</span>' : 
-                '<span class="badge" style="color:#64748b; font-size:0.6rem">Выкл</span>';
+                `<span class="badge online" style="font-size:0.6rem">${i18n('recycle_active')}</span>` : 
+                `<span class="badge" style="color:#64748b; font-size:0.6rem">${i18n('recycle_off')}</span>`;
             
             table.innerHTML += `<tr>
                 <td><strong>${share.name}</strong></td>
@@ -136,7 +205,7 @@ function openShareModal(share = null) {
     if (!modal) return;
     
     const title = document.getElementById('modal-title');
-    if (title) title.innerText = share ? 'Настройка ресурса' : 'Новый ресурс';
+    if (title) title.innerText = share ? i18n('modal_share_title_edit') : i18n('modal_share_title_new');
     
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
@@ -215,7 +284,7 @@ function showModalTab(tabId) {
 
 async function loadPathPermissions(path) {
     const aclOutput = document.getElementById('fs-acl-output');
-    if (aclOutput) aclOutput.innerText = 'Загрузка...';
+    if (aclOutput) aclOutput.innerText = i18n('fs_perm_applying');
 
     try {
         const res = await fetch(`/api/fs/permissions?path=${encodeURIComponent(path)}`);
@@ -228,9 +297,9 @@ async function loadPathPermissions(path) {
         setVal('fs-mode', data.mode);
         updatePermChecks(data.mode);
         
-        if (aclOutput) aclOutput.innerText = data.acls || 'ACL не настроены или недоступны';
+        if (aclOutput) aclOutput.innerText = data.acls || i18n('fs_acl_empty');
     } catch (e) {
-        if (aclOutput) aclOutput.innerText = 'Ошибка: ' + e.message;
+        if (aclOutput) aclOutput.innerText = i18n('fs_acl_error') + ': ' + e.message;
     }
 }
 
@@ -270,7 +339,7 @@ function updateOctalFromChecks() {
 
 async function savePathPermissions() {
     const path = document.getElementById('share-path').value;
-    if (!path) { alert('Сначала укажите путь к папке'); return; }
+    if (!path) { alert(i18n('fs_perm_error_path')); return; }
 
     const req = {
         path: path,
@@ -282,7 +351,7 @@ async function savePathPermissions() {
 
     const btn = event.target;
     const originalText = btn.innerText;
-    btn.innerText = 'Применяю...';
+    btn.innerText = i18n('fs_perm_applying');
     btn.disabled = true;
 
     try {
@@ -293,14 +362,14 @@ async function savePathPermissions() {
         });
 
         if (res.ok) {
-            alert('Права успешно обновлены');
+            alert(i18n('fs_perm_success'));
             loadPathPermissions(path);
         } else {
             const err = await res.text();
-            alert('Ошибка: ' + err);
+            alert(i18n('error') + ': ' + err);
         }
     } catch (e) {
-        alert('Ошибка связи с сервером');
+        alert(i18n('error_server_connection'));
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
@@ -399,7 +468,7 @@ const initEvents = () => {
             closeShareModal();
             loadShares();
         } else {
-            alert('Ошибка при сохранении ресурса');
+            alert(i18n('error_save_share'));
         }
     });
 
@@ -419,7 +488,7 @@ const initEvents = () => {
             loadUsers();
         } else {
             const error = await res.text();
-            alert('Ошибка при сохранении пользователя: ' + error);
+            alert(i18n('error_save_user') + ': ' + error);
         }
     });
 
@@ -438,7 +507,7 @@ const initEvents = () => {
             loadGroups();
         } else {
             const error = await res.text();
-            alert('Ошибка при создании группы: ' + error);
+            alert(i18n('error_create_group') + ': ' + error);
         }
     });
 
@@ -454,11 +523,11 @@ const initEvents = () => {
         });
 
         if (res.ok) {
-            alert('Пароль успешно изменен');
+            alert(i18n('password_changed_success'));
             closePasswordModal();
         } else {
             const error = await res.text();
-            alert('Ошибка при смене пароля: ' + error);
+            alert(i18n('error_change_password') + ': ' + error);
         }
     });
 
@@ -474,8 +543,10 @@ const initEvents = () => {
             body: JSON.stringify({ params })
         });
 
-        if (res.ok) alert('Глобальные настройки сохранены');
+        if (res.ok) alert(i18n('save_success'));
     });
+    
+    setLanguage(currentLang);
 };
 
 if (document.readyState === 'loading') {
@@ -490,7 +561,7 @@ function closeShareModal() {
 }
 
 async function deleteShare(name) {
-    if (!confirm(`Вы уверены, что хотите удалить ресурс "${name}"?`)) return;
+    if (!confirm(i18n('confirm_delete_share', { name }))) return;
     
     const res = await fetch('/api/shares/delete', {
         method: 'POST',
@@ -518,20 +589,20 @@ async function applyChanges() {
     if (!btn) return;
     
     const originalText = btn.innerText;
-    btn.innerText = 'Применяю...';
+    btn.innerText = i18n('btn_applying');
     btn.disabled = true;
     btn.style.opacity = '0.7';
 
     try {
         const res = await fetch('/api/service/apply', { method: 'POST' });
         if (res.ok) {
-            alert('Настройки успешно применены!');
+            alert(i18n('apply_success'));
         } else {
             const error = await res.text();
-            alert('Ошибка при проверке конфига:\n' + error);
+            alert(i18n('error_config_validation') + ':\n' + error);
         }
     } catch (e) {
-        alert('Ошибка связи с сервером');
+        alert(i18n('error_server_connection'));
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
@@ -592,7 +663,7 @@ function closePasswordModal() {
 }
 
 async function deleteUser(username) {
-    if (!confirm(`Вы уверены, что хотите удалить пользователя Samba "${username}"?`)) return;
+    if (!confirm(i18n('confirm_delete_user', { username }))) return;
 
     const res = await fetch('/api/users/delete', {
         method: 'POST',
@@ -604,7 +675,7 @@ async function deleteUser(username) {
         loadUsers();
     } else {
         const error = await res.text();
-        alert('Ошибка при удалении пользователя: ' + error);
+        alert(i18n('error_delete_user') + ': ' + error);
     }
 }
 
@@ -620,7 +691,7 @@ async function loadGroups() {
         groups.forEach(group => {
             const members = group.members && group.members.length > 0 
                 ? group.members.map(m => `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none; margin: 2px;">${m}</span>`).join('')
-                : '<span style="color: #94a3b8; font-size: 0.8rem;">Нет участников</span>';
+                : `<span style="color: #94a3b8; font-size: 0.8rem;">${i18n('label_no_members')}</span>`;
 
             table.innerHTML += `<tr>
                 <td><strong>${group.name}</strong></td>
@@ -649,7 +720,7 @@ function closeGroupModal() {
 }
 
 async function deleteGroup(name) {
-    if (!confirm(`Вы уверены, что хотите удалить группу "${name}"?`)) return;
+    if (!confirm(i18n('confirm_delete_group', { name }))) return;
 
     const res = await fetch('/api/groups/delete', {
         method: 'POST',
@@ -661,7 +732,7 @@ async function deleteGroup(name) {
         loadGroups();
     } else {
         const error = await res.text();
-        alert('Ошибка при удалении группы: ' + error);
+        alert(i18n('error_delete_group') + ': ' + error);
     }
 }
 
@@ -679,7 +750,7 @@ async function openGroupMembersModal(groupName) {
     const allUsers = await usersRes.json();
     const select = document.getElementById('group-add-user-select');
     if (select) {
-        select.innerHTML = '<option value="">Выберите пользователя...</option>';
+        select.innerHTML = `<option value="">${i18n('label_select_user')}</option>`;
         allUsers.forEach(u => {
             select.innerHTML += `<option value="${u.username}">${u.username} (${u.full_name || ''})</option>`;
         });
@@ -702,7 +773,7 @@ async function loadGroupMembers(groupName) {
                 <td><strong>${m}</strong></td>
                 <td>
                     <button class="btn-action btn-outline" style="color: #ef4444; padding: 4px 8px;" onclick="removeGroupMember('${group.name}', '${m}')">
-                        <i data-lucide="user-minus" style="width:14px"></i> Удалить
+                        <i data-lucide="user-minus" style="width:14px"></i> ${i18n('table_actions')}
                     </button>
                 </td>
             </tr>`;
@@ -732,12 +803,12 @@ async function addGroupMember() {
         loadGroups();
     } else {
         const error = await res.text();
-        alert('Ошибка: ' + error);
+        alert(i18n('error') + ': ' + error);
     }
 }
 
 async function removeGroupMember(group, username) {
-    if (!confirm(`Удалить пользователя ${username} из группы ${group}?`)) return;
+    if (!confirm(i18n('confirm_remove_member', { username, group }))) return;
 
     const res = await fetch('/api/groups/member', {
         method: 'POST',
@@ -750,7 +821,7 @@ async function removeGroupMember(group, username) {
         loadGroups();
     } else {
         const error = await res.text();
-        alert('Ошибка: ' + error);
+        alert(i18n('error') + ': ' + error);
     }
 }
 
@@ -767,7 +838,7 @@ async function loadDiskUsage() {
             const color = disk.percent > 90 ? 'var(--status-offline)' : (disk.percent > 75 ? '#f59e0b' : 'var(--status-online)');
             const sharesList = disk.shares && disk.shares.length > 0 ? 
                 `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.8rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">
-                    <strong>Ресурсы:</strong> ${disk.shares.join(', ')}
+                    <strong>${i18n('disk_resources')}:</strong> ${disk.shares.join(', ')}
                  </div>` : '';
 
             container.innerHTML += `
@@ -780,8 +851,8 @@ async function loadDiskUsage() {
                         <div style="width: ${disk.percent}%; height: 100%; background: ${color}; border-radius: 10px; box-shadow: 0 0 10px ${color}44;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">
-                        <span>Использовано: <strong>${disk.used}</strong></span>
-                        <span>Всего: ${disk.total}</span>
+                        <span>${i18n('disk_used')}: <strong>${disk.used}</strong></span>
+                        <span>${i18n('disk_total')}: ${disk.total}</span>
                     </div>
                     ${sharesList}
                 </div>
@@ -871,7 +942,7 @@ setInterval(() => {
 }, 5000);
 
 async function clearRecycleBins() {
-    if (!confirm('Вы уверены, что хотите безвозвратно удалить все файлы из сетевых корзин всех ресурсов?')) return;
+    if (!confirm(i18n('confirm_clear_recycle'))) return;
 
     try {
         const res = await fetch('/api/maintenance/clear-recycle', { method: 'POST' });
@@ -880,13 +951,13 @@ async function clearRecycleBins() {
         const successCount = results.filter(r => !r.error).length;
         const failCount = results.filter(r => r.error).length;
         
-        let message = `Очистка завершена.\nУспешно очищено корзин: ${successCount}`;
-        if (failCount > 0) message += `\nОшибок: ${failCount}`;
+        let message = i18n('msg_clear_recycle_success', { count: successCount });
+        if (failCount > 0) message += `\n${i18n('msg_errors')}: ${failCount}`;
         
         alert(message);
         loadDiskUsage();
     } catch (e) {
-        alert('Ошибка при очистке: ' + e.message);
+        alert(i18n('error_clear_recycle') + ': ' + e.message);
     }
 }
 
@@ -923,8 +994,8 @@ async function saveAutomationSettings() {
             method: 'POST',
             body: JSON.stringify(s)
         });
-        alert('Настройки автоматизации сохранены');
-    } catch (e) { alert('Ошибка: ' + e.message); }
+        alert(i18n('automation_save_success'));
+    } catch (e) { alert(i18n('error') + ': ' + e.message); }
 }
 
 function showSettingsSection(sectionId, element) {
@@ -951,7 +1022,7 @@ async function loadDiscoveryStatus() {
         container.innerHTML = '';
         services.forEach(s => {
             const statusClass = s.active ? 'online' : 'offline';
-            const statusText = s.active ? 'Active' : 'Stopped';
+            const statusText = s.active ? i18n('status_active') : i18n('status_stopped');
             const label = s.name === 'wsdd' ? 'Windows (WSDD)' : 'macOS/Linux (Avahi)';
             
             container.innerHTML += `
@@ -973,11 +1044,11 @@ async function loadDiscoveryManagement() {
 
         container.innerHTML = '';
         services.forEach(s => {
-            const label = s.name === 'wsdd' ? 'Windows Service Discovery (WSDD)' : 'Avahi mDNS (Bonjour)';
-            const desc = s.name === 'wsdd' ? 'Позволяет Windows видеть сервер в проводнике.' : 'Позволяет macOS и Linux видеть сервер в Finder.';
-            const statusText = s.active ? 'Запущен' : 'Остановлен';
+            const label = s.name === 'wsdd' ? i18n('label_wsdd') : i18n('label_avahi');
+            const desc = s.name === 'wsdd' ? i18n('desc_wsdd') : i18n('desc_avahi');
+            const statusText = s.active ? i18n('status_running') : i18n('status_stopped');
             const btnAction = s.active ? 'stop' : 'start';
-            const btnText = s.active ? 'Остановить' : 'Запустить';
+            const btnText = s.active ? i18n('btn_stop') : i18n('btn_start');
             const btnClass = s.active ? 'btn-outline' : 'btn-primary';
 
             container.innerHTML += `
@@ -988,7 +1059,7 @@ async function loadDiscoveryManagement() {
                             <p style="font-size: 0.8rem; color: var(--text-secondary);">${desc}</p>
                             <div style="margin-top: 1rem; display: flex; align-items: center; gap: 8px;">
                                 <span class="badge ${s.active ? 'online' : 'offline'}">${statusText}</span>
-                                ${!s.installed ? '<span class="badge" style="background: #fee2e2; color: #ef4444; border:none;">Не установлен</span>' : ''}
+                                ${!s.installed ? `<span class="badge" style="background: #fee2e2; color: #ef4444; border:none;">${i18n('label_not_installed')}</span>` : ''}
                             </div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -997,7 +1068,7 @@ async function loadDiscoveryManagement() {
                             </button>
                             ${s.installed ? `
                                 <button type="button" class="btn-action btn-outline" style="font-size: 0.75rem; padding: 4px;" onclick="controlDiscoveryService('${s.name}', 'restart')">
-                                    Перезапустить
+                                    ${i18n('btn_restart')}
                                 </button>
                             ` : ''}
                         </div>
@@ -1020,7 +1091,7 @@ async function controlDiscoveryService(service, action) {
             loadDiscoveryStatus();
         } else {
             const err = await res.text();
-            alert('Ошибка: ' + err);
+            alert(i18n('error') + ': ' + err);
         }
     } catch (e) { console.error(e); }
 }
@@ -1035,14 +1106,14 @@ async function checkADStatus() {
         
         if (badge) {
             if (data.joined) {
-                badge.innerText = 'ПОДКЛЮЧЕНО';
+                badge.innerText = i18n('label_joined');
                 badge.className = 'badge online';
                 badge.style.background = '';
                 badge.style.color = '';
                 if (reqBox) reqBox.style.display = 'none';
                 runADHealthCheck(); // Автозапуск при входе в раздел
             } else {
-                badge.innerText = 'НЕ В ДОМЕНЕ';
+                badge.innerText = i18n('label_not_joined');
                 badge.className = 'badge offline';
                 badge.style.background = '';
                 badge.style.color = '';
@@ -1085,15 +1156,15 @@ async function joinAD() {
     const pass = document.getElementById('ad-admin-pass').value;
     
     if (!realm || !admin || !pass) {
-        alert('Пожалуйста, заполните все поля для ввода в домен');
+        alert(i18n('error_fill_all'));
         return;
     }
     
-    if (!confirm(`Вы действительно хотите ввести сервер в домен ${realm}? Это изменит конфигурацию Samba.`)) return;
+    if (!confirm(i18n('confirm_ad_join', { realm }))) return;
     
     const btn = event.target.closest('button');
     const originalContent = btn.innerHTML;
-    btn.innerHTML = '<i data-lucide="loader-2" style="width:16px; animation: spin 1s linear infinite;"></i> Выполняю...';
+    btn.innerHTML = `<i data-lucide="loader-2" style="width:16px; animation: spin 1s linear infinite;"></i> ${i18n('label_executing')}`;
     btn.disabled = true;
     
     try {
@@ -1104,14 +1175,14 @@ async function joinAD() {
         });
         
         if (res.ok) {
-            alert('Сервер успешно введен в домен!');
+            alert(i18n('msg_ad_join_success'));
             checkADStatus();
         } else {
             const error = await res.text();
-            alert('Ошибка при вводе в домен:\n' + error);
+            alert(i18n('error') + ': ' + error);
         }
     } catch (e) {
-        alert('Ошибка связи с сервером: ' + e.message);
+        alert(i18n('error_server_connection') + ': ' + e.message);
     } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
@@ -1141,21 +1212,39 @@ async function runADHealthCheck() {
             };
             const c = colors[check.status] || colors['error'];
 
+            // Маппинг заголовков и сообщений с бэкенда
+            const nameMap = {
+                'Связь с контроллером': i18n('ad_check_conn'),
+                'Синхронизация времени': i18n('ad_check_time'),
+                'Доверительные отношения': i18n('ad_check_trust'),
+                'Winbind RPC': i18n('ad_check_rpc'),
+                'Kerberos Keytab': i18n('ad_check_keytab')
+            };
+            const msgMap = {
+                'Время сервера совпадает с DC': i18n('ad_msg_time_ok'),
+                'Не удалось проверить время через net ads': i18n('ad_msg_time_warn'),
+                'Keytab файл присутствует и валиден': i18n('ad_msg_keytab_ok'),
+                'Keytab не найден или не читается': i18n('ad_msg_keytab_err')
+            };
+
+            const localizedName = nameMap[check.name] || check.name;
+            const localizedMsg = msgMap[check.message] || check.message;
+
             container.innerHTML += `
                 <div style="padding: 1rem; background: ${c.bg}; border: 1px solid ${c.border}; border-radius: 12px; display: flex; align-items: flex-start; gap: 0.75rem;">
                     <i data-lucide="${c.icon}" style="color: ${c.text}; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"></i>
                     <div style="flex-grow: 1;">
                         <div style="display: flex; justify-content: space-between;">
-                            <span style="font-weight: 700; font-size: 0.85rem; color: ${c.text};">${check.name}</span>
+                            <span style="font-weight: 700; font-size: 0.85rem; color: ${c.text};">${localizedName}</span>
                             <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: ${c.text}; opacity: 0.7;">${check.status}</span>
                         </div>
-                        <p style="font-size: 0.75rem; color: ${c.text}; margin-top: 4px; opacity: 0.9; font-family: 'JetBrains Mono', monospace;">${check.message}</p>
+                        <p style="font-size: 0.75rem; color: ${c.text}; margin-top: 4px; opacity: 0.9; font-family: 'JetBrains Mono', monospace;">${localizedMsg}</p>
                     </div>
                 </div>
             `;
         });
 
-        if (lastUpdateEl) lastUpdateEl.innerText = 'Последняя проверка: ' + data.last_update;
+        if (lastUpdateEl) lastUpdateEl.innerText = i18n('label_last_check') + ': ' + data.last_update;
         if (window.lucide) lucide.createIcons();
     } catch (e) {
         console.error(e);
@@ -1175,10 +1264,10 @@ async function loadPanelAdmins() {
         const isSelf = a.username === localStorage.getItem('panel_user');
         const deleteBtn = (a.username !== 'admin' && !isSelf) 
             ? `<button class="btn-action btn-outline" style="color: #ef4444; padding: 4px 8px;" onclick="deletePanelAdmin('${a.username}')"><i data-lucide="trash-2" style="width:14px"></i></button>`
-            : '<span style="color: var(--text-secondary); font-size: 0.7rem;">Защищено</span>';
+            : `<span style="color: var(--text-secondary); font-size: 0.7rem;">${i18n('label_protected')}</span>`;
 
         table.innerHTML += `<tr>
-            <td><strong>${a.username} ${isSelf ? '<span style="color: var(--accent-blue)">(Вы)</span>' : ''}</strong></td>
+            <td><strong>${a.username} ${isSelf ? `<span style="color: var(--accent-blue)">(${i18n('label_you')})</span>` : ''}</strong></td>
             <td><span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none;">${a.role}</span></td>
             <td>${deleteBtn}</td>
         </tr>`;
@@ -1189,7 +1278,7 @@ async function loadPanelAdmins() {
 async function changePanelPassword() {
     const oldPass = document.getElementById('admin-old-pass').value;
     const newPass = document.getElementById('admin-new-pass').value;
-    if (!oldPass || !newPass) { alert('Заполните оба поля'); return; }
+    if (!oldPass || !newPass) { alert(i18n('error_fill_both')); return; }
 
     const res = await fetch('/api/panel/admins/password', {
         method: 'POST',
@@ -1197,12 +1286,12 @@ async function changePanelPassword() {
         body: JSON.stringify({ old_password: oldPass, new_password: newPass })
     });
     if (res.ok) {
-        alert('Пароль успешно изменен');
+        alert(i18n('password_changed_success'));
         document.getElementById('admin-old-pass').value = '';
         document.getElementById('admin-new-pass').value = '';
     } else {
         const err = await res.text();
-        alert('Ошибка: ' + err);
+        alert(i18n('error') + ': ' + err);
     }
 }
 
@@ -1225,15 +1314,15 @@ document.getElementById('admin-form')?.addEventListener('submit', async (e) => {
         loadPanelAdmins();
     } else {
         const err = await res.text();
-        alert('Ошибка: ' + err);
+        alert(i18n('error') + ': ' + err);
     }
 });
 
 async function deletePanelAdmin(username) {
-    if (!confirm(`Удалить администратора ${username}?`)) return;
+    if (!confirm(i18n('confirm_delete_admin', { username }))) return;
     const res = await fetch(`/api/panel/admins/delete?username=${username}`, { method: 'DELETE' });
     if (res.ok) loadPanelAdmins();
 }
 
+initI18n();
 setInterval(updateStatus, 3000);
-updateStatus();

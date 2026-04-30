@@ -22,36 +22,43 @@
             </div>
         </div>
         <nav>
-            <div class="nav-item active" onclick="showTab('dashboard', this)">
+            <div class="nav-item active" onclick="showTab('dashboard', this)" data-i18n="nav_dashboard">
                 <i data-lucide="layout-dashboard"></i> Дашборд
             </div>
-            <div class="nav-item" onclick="showTab('shares', this)">
+            <div class="nav-item" onclick="showTab('shares', this)" data-i18n="nav_shares">
                 <i data-lucide="folder-tree"></i> Общие ресурсы
             </div>
-            <div class="nav-item" onclick="showTab('users', this)">
+            <div class="nav-item" onclick="showTab('users', this)" data-i18n="nav_users">
                 <i data-lucide="users"></i> Пользователи
             </div>
-            <div class="nav-item" onclick="showTab('groups', this)">
+            <div class="nav-item" onclick="showTab('groups', this)" data-i18n="nav_groups">
                 <i data-lucide="users-2"></i> Группы
             </div>
-            <div class="nav-item" onclick="showTab('global', this)">
+            <div class="nav-item" onclick="showTab('global', this)" data-i18n="nav_global">
                 <i data-lucide="settings-2"></i> Настройки сервера
             </div>
-            <div class="nav-item" onclick="showTab('logs', this)">
+            <div class="nav-item" onclick="showTab('logs', this)" data-i18n="nav_logs">
                 <i data-lucide="terminal"></i> Логи системы
             </div>
-            <div class="nav-item" onclick="showTab('audit', this)">
+            <div class="nav-item" onclick="showTab('audit', this)" data-i18n="nav_audit">
                 <i data-lucide="clipboard-list"></i> Журнал аудита
             </div>
-            <div class="nav-item" onclick="showTab('automation', this)">
+            <div class="nav-item" onclick="showTab('automation', this)" data-i18n="nav_automation">
                 <i data-lucide="zap"></i> Автоматизация
             </div>
             
-            <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-bottom: 1rem;">
+            <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-bottom: 1rem;" data-i18n="nav_logout">
                 <i data-lucide="log-out"></i> Выход
             </div>
+
+            <div style="display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 12px; gap: 4px; border: 1px solid rgba(255,255,255,0.1); margin: 0 1rem 1rem 1rem;">
+                <button class="btn-action btn-outline lang-btn" onclick="setLanguage('ru')" style="flex: 1; padding: 4px; height: 28px; font-size: 0.7rem; color: #fff; background: transparent; border: none; cursor: pointer; border-radius: 8px;">RU</button>
+                <button class="btn-action btn-outline lang-btn" onclick="setLanguage('en')" style="flex: 1; padding: 4px; height: 28px; font-size: 0.7rem; color: #fff; background: transparent; border: none; cursor: pointer; border-radius: 8px;">EN</button>
+                <button class="btn-action btn-outline lang-btn" onclick="setLanguage('zh')" style="flex: 1; padding: 4px; height: 28px; font-size: 0.7rem; color: #fff; background: transparent; border: none; cursor: pointer; border-radius: 8px;">ZH</button>
+                <button class="btn-action btn-outline lang-btn" onclick="setLanguage('es')" style="flex: 1; padding: 4px; height: 28px; font-size: 0.7rem; color: #fff; background: transparent; border: none; cursor: pointer; border-radius: 8px;">ES</button>
+            </div>
         </nav>
-        <div style="padding: 1.5rem; font-size: 0.75rem; color: #64748b; font-weight: 500;">
+        <div style="padding: 0 1.5rem 1.5rem 1.5rem; font-size: 0.75rem; color: #64748b; font-weight: 500;" data-i18n="label_version">
             v1.2.0 Premium
         </div>
     </aside>
@@ -59,17 +66,17 @@
     <main>
         <header id="main-header">
             <div>
-                <h1 id="page-title">Дашборд</h1>
-                <p id="page-subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">Мониторинг и управление Samba-сервером</p>
+                <h1 id="page-title" data-i18n="page_dashboard_title">Дашборд</h1>
+                <p id="page-subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;" data-i18n="page_dashboard_subtitle">Мониторинг и управление Samba-сервером</p>
             </div>
             <div style="display: flex; gap: 1rem; align-items: center;">
-                <button id="btn-apply" class="btn-action btn-apply-special" style="display: none;" onclick="applyChanges()">Применить изменения</button>
+                <button id="btn-apply" class="btn-action btn-apply-special" style="display: none;" onclick="applyChanges()" data-i18n="btn_apply">Применить изменения</button>
                 <div style="display: flex; background: rgba(255,255,255,0.5); backdrop-filter: blur(8px); padding: 6px; border-radius: 16px; gap: 6px; border: 1px solid var(--border-color);">
-                    <button class="btn-action btn-outline" onclick="controlService('start')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;">Start</button>
-                    <button class="btn-action btn-outline" onclick="controlService('stop')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;">Stop</button>
-                    <button class="btn-action btn-outline" onclick="controlService('restart')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;">Restart</button>
+                    <button class="btn-action btn-outline" onclick="controlService('start')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;" data-i18n="btn_start">Запустить</button>
+                    <button class="btn-action btn-outline" onclick="controlService('stop')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;" data-i18n="btn_stop">Остановить</button>
+                    <button class="btn-action btn-outline" onclick="controlService('restart')" style="padding: 6px 12px; height: 34px; font-size: 0.8rem;" data-i18n="btn_restart">Перезапустить</button>
                 </div>
-                <div id="samba-status-badge" class="badge online">
+                <div id="samba-status-badge" class="badge online" data-i18n="smb_online">
                     <span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span>
                     SMB: ONLINE
                 </div>
@@ -80,22 +87,22 @@
         <div id="tab-dashboard" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label"><i data-lucide="activity" style="width: 16px;"></i> Активные сессии</div>
+                    <div class="stat-label"><i data-lucide="activity" style="width: 16px;"></i> <span data-i18n="stat_active_sessions">Активные сессии</span></div>
                     <div class="stat-value" id="session-count">0</div>
-                    <div style="margin-top: 1rem; font-size: 0.75rem; color: #10b981; font-weight: 600;">↑ 12% с прошлого часа</div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: #10b981; font-weight: 600;" data-i18n="stat_up_from_last_hour">↑ 12% с прошлого часа</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label"><i data-lucide="file-text" style="width: 16px;"></i> Файлов открыто</div>
+                    <div class="stat-label"><i data-lucide="file-text" style="width: 16px;"></i> <span data-i18n="stat_files_open">Файлов открыто</span></div>
                     <div class="stat-value" id="file-count">0</div>
-                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-secondary);">Текущая нагрузка на FS</div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-secondary);" data-i18n="stat_fs_load">Текущая нагрузка на FS</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label"><i data-lucide="cpu" style="width: 16px;"></i> Версия Samba</div>
+                    <div class="stat-label"><i data-lucide="cpu" style="width: 16px;"></i> <span data-i18n="stat_samba_version">Версия Samba</span></div>
                     <div class="stat-value" id="samba-version" style="font-size: 1.1rem;">-</div>
-                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--accent-blue); font-weight: 600;">System Core</div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--accent-blue); font-weight: 600;" data-i18n="stat_system_core">System Core</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label"><i data-lucide="search" style="width: 16px;"></i> Сетевое обнаружение</div>
+                    <div class="stat-label"><i data-lucide="search" style="width: 16px;"></i> <span data-i18n="stat_network_discovery">Сетевое обнаружение</span></div>
                     <div id="discovery-status-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 8px;">
                         <!-- JS populate -->
                     </div>
@@ -105,7 +112,7 @@
 
             <div class="content-panel">
                 <div class="panel-header">
-                    <h2><i data-lucide="hard-drive" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> Использование дискового пространства</h2>
+                    <h2><i data-lucide="hard-drive" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> <span data-i18n="disk_usage_title">Использование дискового пространства</span></h2>
                 </div>
                 <div id="disk-usage-container" style="padding: 2rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem;">
                     <!-- JS populate -->
@@ -114,15 +121,15 @@
 
             <div class="content-panel">
                 <div class="panel-header">
-                    <h2><i data-lucide="users" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> Текущие подключения</h2>
+                    <h2><i data-lucide="users" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> <span data-i18n="sessions_title">Текущие подключения</span></h2>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Пользователь</th>
-                                <th>Удаленный хост</th>
-                                <th>Протокол</th>
+                                <th data-i18n="table_user">Пользователь</th>
+                                <th data-i18n="table_host">Удаленный хост</th>
+                                <th data-i18n="table_protocol">Протокол</th>
                             </tr>
                         </thead>
                         <tbody id="sessions-table-body"></tbody>
@@ -135,19 +142,19 @@
         <div id="tab-shares" class="tab-content" style="display:none;">
             <div class="content-panel">
                 <div class="panel-header">
-                    <h2>Список общих папок</h2>
+                    <h2 data-i18n="shares_list_title">Список общих папок</h2>
                     <button class="btn-action btn-primary" onclick="openShareModal()">
-                        <i data-lucide="plus"></i> Добавить ресурс
+                        <i data-lucide="plus"></i> <span data-i18n="btn_add_share">Добавить ресурс</span>
                     </button>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Имя</th>
-                                <th>Путь</th>
-                                <th>Корзина</th>
-                                <th>Действия</th>
+                                <th data-i18n="table_name">Имя</th>
+                                <th data-i18n="table_path">Путь</th>
+                                <th data-i18n="table_recycle">Корзина</th>
+                                <th data-i18n="table_actions">Действия</th>
                             </tr>
                         </thead>
                         <tbody id="shares-table-body"></tbody>
@@ -160,19 +167,19 @@
         <div id="tab-users" class="tab-content" style="display:none;">
             <div class="content-panel">
                 <div class="panel-header">
-                    <h2>Зарегистрированные аккаунты</h2>
+                    <h2 data-i18n="users_list_title">Зарегистрированные аккаунты</h2>
                     <button class="btn-action btn-primary" onclick="openUserModal()">
-                        <i data-lucide="user-plus"></i> Добавить пользователя
+                        <i data-lucide="user-plus"></i> <span data-i18n="btn_add_user">Добавить пользователя</span>
                     </button>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Логин</th>
-                                <th>UID</th>
-                                <th>Полное имя</th>
-                                <th>Действия</th>
+                                <th data-i18n="table_user">Логин</th>
+                                <th data-i18n="table_uid">UID</th>
+                                <th data-i18n="table_fullname">Полное имя</th>
+                                <th data-i18n="table_actions">Действия</th>
                             </tr>
                         </thead>
                         <tbody id="users-table-body"></tbody>
@@ -185,19 +192,19 @@
         <div id="tab-groups" class="tab-content" style="display:none;">
             <div class="content-panel">
                 <div class="panel-header">
-                    <h2>Группы Samba / Системные</h2>
+                    <h2 data-i18n="groups_list_title">Группы Samba / Системные</h2>
                     <button class="btn-action btn-primary" onclick="openGroupModal()">
-                        <i data-lucide="plus-square"></i> Добавить группу
+                        <i data-lucide="plus-square"></i> <span data-i18n="btn_add_group">Добавить группу</span>
                     </button>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Имя группы</th>
-                                <th>GID</th>
-                                <th>Участники</th>
-                                <th>Действия</th>
+                                <th data-i18n="table_groupname">Имя группы</th>
+                                <th data-i18n="table_gid">GID</th>
+                                <th data-i18n="table_members">Участники</th>
+                                <th data-i18n="table_actions">Действия</th>
                             </tr>
                         </thead>
                         <tbody id="groups-table-body"></tbody>
@@ -211,28 +218,28 @@
             <div style="display: flex; gap: 2rem; align-items: flex-start;">
                 <!-- Внутренняя навигация настроек -->
                 <div class="content-panel" style="width: 280px; flex-shrink: 0; position: sticky; top: 0; padding: 1rem;">
-                    <div class="settings-nav-item active" onclick="showSettingsSection('net', this)">
+                    <div class="settings-nav-item active" onclick="showSettingsSection('net', this)" data-i18n="set_nav_net">
                         <i data-lucide="globe"></i> Сеть и ID
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('sec', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('sec', this)" data-i18n="set_nav_sec">
                         <i data-lucide="lock"></i> Безопасность
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('perf', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('perf', this)" data-i18n="set_nav_perf">
                         <i data-lucide="zap"></i> Производительность
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('proto', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('proto', this)" data-i18n="set_nav_proto">
                         <i data-lucide="layers"></i> Протоколы
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('ad', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('ad', this)" data-i18n="set_nav_ad">
                         <i data-lucide="database"></i> Active Directory
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('discovery', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('discovery', this)" data-i18n="set_nav_discovery">
                         <i data-lucide="search"></i> Обнаружение (WSDD/Avahi)
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('debug', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('debug', this)" data-i18n="set_nav_debug">
                         <i data-lucide="bug"></i> Логи и Отладка
                     </div>
-                    <div class="settings-nav-item" onclick="showSettingsSection('panel-admins', this)">
+                    <div class="settings-nav-item" onclick="showSettingsSection('panel-admins', this)" data-i18n="set_nav_admins">
                         <i data-lucide="shield-check"></i> Администраторы панели
                     </div>
                 </div>
@@ -241,16 +248,16 @@
                 <form id="global-form" style="flex-grow: 1;">
                     <div id="sec-net" class="settings-section">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="globe"></i> Сеть и Идентификация</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="globe"></i> <span data-i18n="set_title_net">Сеть и Идентификация</span></h2></div>
                             <div style="padding: 2rem;">
-                                <div class="form-group"><label>Workgroup</label><input type="text" name="workgroup"></div>
-                                <div class="form-group"><label>Netbios Name</label><input type="text" name="netbios name"></div>
-                                <div class="form-group"><label>Server String</label><input type="text" name="server string"></div>
-                                <div class="form-group"><label>Interfaces</label><input type="text" name="interfaces" placeholder="lo eth0"></div>
-                                <div class="form-group"><label>Bind Interfaces Only</label>
+                                <div class="form-group"><label data-i18n="label_workgroup">Workgroup</label><input type="text" name="workgroup"></div>
+                                <div class="form-group"><label data-i18n="label_netbios_name">Netbios Name</label><input type="text" name="netbios name"></div>
+                                <div class="form-group"><label data-i18n="label_server_string">Server String</label><input type="text" name="server string"></div>
+                                <div class="form-group"><label data-i18n="label_interfaces">Interfaces</label><input type="text" name="interfaces" placeholder="lo eth0"></div>
+                                <div class="form-group"><label data-i18n="label_bind_interfaces">Bind Interfaces Only</label>
                                     <select name="bind interfaces only">
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
+                                        <option value="yes" data-i18n="label_yes">Да</option>
+                                        <option value="no" data-i18n="label_no">Нет</option>
                                     </select>
                                 </div>
                             </div>
@@ -259,29 +266,29 @@
 
                     <div id="sec-sec" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="lock"></i> Безопасность</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="lock"></i> <span data-i18n="set_title_sec">Безопасность</span></h2></div>
                             <div style="padding: 2rem;">
-                                <div class="form-group"><label>Security Mode</label>
+                                <div class="form-group"><label data-i18n="label_security_mode">Security Mode</label>
                                     <select name="security">
-                                        <option value="user">User</option>
-                                        <option value="ads">ADS (Active Directory)</option>
-                                        <option value="domain">Domain</option>
+                                        <option value="user" data-i18n="label_sec_user">User</option>
+                                        <option value="ads" data-i18n="label_sec_ads">ADS (Active Directory)</option>
+                                        <option value="domain" data-i18n="label_sec_domain">Domain</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Map to Guest</label>
+                                <div class="form-group"><label data-i18n="label_map_to_guest">Map to Guest</label>
                                     <select name="map to guest">
-                                        <option value="Never">Never</option>
-                                        <option value="Bad User">Bad User</option>
+                                        <option value="Never" data-i18n="label_map_never">Never</option>
+                                        <option value="Bad User" data-i18n="label_map_bad_user">Bad User</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Guest Account</label><input type="text" name="guest account" placeholder="nobody"></div>
+                                <div class="form-group"><label data-i18n="label_guest_account">Guest Account</label><input type="text" name="guest account" placeholder="nobody"></div>
                                 <div class="form-group">
-                                    <label>Hosts Allow (Белый список IP)</label>
+                                    <label data-i18n="label_hosts_allow_ips">Hosts Allow (Белый список IP)</label>
                                     <input type="text" name="hosts allow" placeholder="192.168.1.0/24 10.0.0.5">
-                                    <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">Поддерживаются IP, подсети (192.168.1.) и CIDR (192.168.1.0/24)</p>
+                                    <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;" data-i18n="desc_ip_support">Поддерживаются IP, подсети (192.168.1.) и CIDR (192.168.1.0/24)</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Hosts Deny (Черный список IP)</label>
+                                    <label data-i18n="label_hosts_deny_ips">Hosts Deny (Черный список IP)</label>
                                     <input type="text" name="hosts deny" placeholder="10.0.0.0/8">
                                 </div>
                             </div>
@@ -290,40 +297,40 @@
 
                     <div id="sec-perf" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="zap"></i> Производительность и AIO</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="zap"></i> <span data-i18n="set_title_perf">Производительность и AIO</span></h2></div>
                             <div style="padding: 2rem;">
-                                <div class="form-group"><label>Use Sendfile</label>
+                                <div class="form-group"><label data-i18n="label_use_sendfile">Use Sendfile</label>
                                     <select name="use sendfile">
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
+                                        <option value="yes" data-i18n="label_yes">Да</option>
+                                        <option value="no" data-i18n="label_no">Нет</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>AIO Read Size</label><input type="text" name="aio read size" placeholder="1"></div>
-                                <div class="form-group"><label>AIO Write Size</label><input type="text" name="aio write size" placeholder="1"></div>
-                                <div class="form-group"><label>Socket Options</label><input type="text" name="socket options" placeholder="TCP_NODELAY"></div>
+                                <div class="form-group"><label data-i18n="label_aio_read">AIO Read Size</label><input type="text" name="aio read size" placeholder="1"></div>
+                                <div class="form-group"><label data-i18n="label_aio_write">AIO Write Size</label><input type="text" name="aio write size" placeholder="1"></div>
+                                <div class="form-group"><label data-i18n="label_socket_options">Socket Options</label><input type="text" name="socket options" placeholder="TCP_NODELAY"></div>
                             </div>
                         </div>
                     </div>
 
                     <div id="sec-proto" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="layers"></i> Совместимость и Протоколы</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="layers"></i> <span data-i18n="set_title_proto">Совместимость и Протоколы</span></h2></div>
                             <div style="padding: 2rem;">
-                                <div class="form-group"><label>Min Protocol</label>
+                                <div class="form-group"><label data-i18n="label_min_proto">Min Protocol</label>
                                     <select name="server min protocol">
                                         <option value="SMB2_10">SMB2_10</option>
                                         <option value="SMB2">SMB2</option>
                                         <option value="NT1">NT1</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Max Protocol</label>
+                                <div class="form-group"><label data-i18n="label_max_proto">Max Protocol</label>
                                     <select name="server max protocol">
                                         <option value="SMB3_11">SMB3_11</option>
                                         <option value="SMB3">SMB3</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Unix Charset</label><input type="text" name="unix charset" value="UTF-8"></div>
-                                <div class="form-group"><label>Dos Charset</label><input type="text" name="dos charset" value="CP866"></div>
+                                <div class="form-group"><label data-i18n="label_unix_charset">Unix Charset</label><input type="text" name="unix charset" value="UTF-8"></div>
+                                <div class="form-group"><label data-i18n="label_dos_charset">Dos Charset</label><input type="text" name="dos charset" value="CP866"></div>
                             </div>
                         </div>
                     </div>
@@ -331,8 +338,8 @@
                     <div id="sec-ad" class="settings-section" style="display:none;">
                         <div class="content-panel">
                             <div class="panel-header">
-                                <h2><i data-lucide="database"></i> Active Directory / Domain</h2>
-                                <div id="ad-status-badge" class="badge" style="background: #f1f5f9; color: #64748b;">
+                                <h2><i data-lucide="database"></i> <span data-i18n="set_title_ad">Active Directory / Domain</span></h2>
+                                <div id="ad-status-badge" class="badge" style="background: #f1f5f9; color: #64748b;" data-i18n="label_ad_status_checking">
                                     Проверка статуса...
                                 </div>
                             </div>
@@ -342,8 +349,8 @@
                                 <div id="ad-requirements-box" style="margin-bottom: 2rem; padding: 1.25rem; background: rgba(245, 158, 11, 0.05); border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.2); display: flex; gap: 1rem; align-items: flex-start;">
                                     <i data-lucide="info" style="color: #d97706; width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
                                     <div>
-                                        <h4 style="color: #b45309; font-size: 0.85rem; margin-bottom: 4px; font-weight: 700;">Требования системы</h4>
-                                        <p style="font-size: 0.8rem; color: #d97706; line-height: 1.5;">
+                                        <h4 style="color: #b45309; font-size: 0.85rem; margin-bottom: 4px; font-weight: 700;" data-i18n="label_ad_reqs">Требования системы</h4>
+                                        <p style="font-size: 0.8rem; color: #d97706; line-height: 1.5;" data-i18n="label_ad_reqs_desc">
                                             Для работы с доменом на сервере должны быть установлены пакеты:<br>
                                             <code style="background: rgba(180, 83, 9, 0.1); padding: 2px 4px; border-radius: 4px; font-weight: 600;">krb5-user</code>, 
                                             <code style="background: rgba(180, 83, 9, 0.1); padding: 2px 4px; border-radius: 4px; font-weight: 600;">winbind</code>, 
@@ -353,36 +360,36 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Realm (Полное имя домена)</label>
+                                    <label data-i18n="label_ad_realm">Realm (Полное имя домена)</label>
                                     <input type="text" id="ad-realm" name="realm" placeholder="CORP.EXAMPLE.COM">
                                 </div>
 
                                 <div style="background: rgba(59, 130, 246, 0.05); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.1); margin-top: 1rem;">
-                                    <h3 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--accent-blue);">Присоединение к домену</h3>
-                                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                                    <h3 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--accent-blue);" data-i18n="label_ad_join_title">Присоединение к домену</h3>
+                                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;" data-i18n="label_ad_join_desc">
                                         Для ввода сервера в домен требуются учетные данные администратора домена. 
                                         Эти данные <b>не сохраняются</b> в системе и используются только один раз.
                                     </p>
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                         <div class="form-group">
-                                            <label>Администратор домена</label>
+                                            <label data-i18n="label_ad_admin_user">Администратор домена</label>
                                             <input type="text" id="ad-admin-user" placeholder="administrator" value="administrator">
                                         </div>
                                         <div class="form-group">
-                                            <label>Пароль администратора</label>
+                                            <label data-i18n="label_ad_admin_pass">Пароль администратора</label>
                                             <input type="password" id="ad-admin-pass" placeholder="••••••••">
                                         </div>
                                     </div>
                                     <button type="button" class="btn-action btn-primary" style="width: 100%; margin-top: 1rem;" onclick="joinAD()">
-                                        <i data-lucide="link"></i> Присоединиться к домену
+                                        <i data-lucide="link"></i> <span data-i18n="btn_ad_join">Присоединиться к домену</span>
                                     </button>
                                 </div>
 
                                 <div id="ad-health-section" style="margin-top: 2rem; display: none;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                        <h3 style="font-size: 0.9rem; font-weight: 700;">Диагностика подключения (Health Check)</h3>
+                                        <h3 style="font-size: 0.9rem; font-weight: 700;" data-i18n="label_ad_health_title">Диагностика подключения (Health Check)</h3>
                                         <button type="button" class="btn-action btn-outline" style="font-size: 0.75rem; padding: 4px 10px;" onclick="runADHealthCheck()">
-                                            <i data-lucide="refresh-cw"></i> Запустить проверку
+                                            <i data-lucide="refresh-cw"></i> <span data-i18n="btn_ad_run_health">Запустить проверку</span>
                                         </button>
                                     </div>
                                     <div id="ad-health-results" style="display: flex; flex-direction: column; gap: 8px;">
@@ -392,16 +399,16 @@
                                 </div>
 
                                 <div style="margin-top: 2rem;">
-                                    <h3 style="font-size: 0.9rem; margin-bottom: 1rem;">Дополнительные параметры Winbind</h3>
+                                    <h3 style="font-size: 0.9rem; margin-bottom: 1rem;" data-i18n="label_ad_winbind_params">Дополнительные параметры Winbind</h3>
                                     <div class="form-group">
-                                        <label>Kerberos Method</label>
+                                        <label data-i18n="label_ad_kerberos_method">Kerberos Method</label>
                                         <input type="text" name="kerberos method" value="secrets and keytab">
                                     </div>
                                     <div class="form-group">
-                                        <label>Winbind Enum Users</label>
+                                        <label data-i18n="label_ad_winbind_enum">Winbind Enum Users</label>
                                         <select name="winbind enum users">
-                                            <option value="yes">Yes</option>
-                                            <option value="no">No</option>
+                                            <option value="yes" data-i18n="label_yes">Да</option>
+                                            <option value="no" data-i18n="label_no">Нет</option>
                                         </select>
                                     </div>
                                 </div>
@@ -411,16 +418,16 @@
 
                     <div id="sec-discovery" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="search"></i> Сетевое обнаружение</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="search"></i> <span data-i18n="set_title_discovery">Сетевое обнаружение</span></h2></div>
                             <div style="padding: 2rem;">
                                 <div id="discovery-management-container">
                                     <!-- JS populate -->
                                 </div>
                                 <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(59, 130, 246, 0.05); border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.1);">
-                                    <h4 style="font-size: 0.85rem; color: var(--accent-blue); margin-bottom: 0.5rem;">Как это работает?</h4>
+                                    <h4 style="font-size: 0.85rem; color: var(--accent-blue); margin-bottom: 0.5rem;" data-i18n="label_discovery_how">Как это работает?</h4>
                                     <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
-                                        <b>WSDD</b> позволяет серверу отображаться в разделе «Сеть» (Network) в Windows 10/11.<br>
-                                        <b>Avahi</b> обеспечивает обнаружение сервера в macOS (Finder) и Linux через протокол mDNS/Bonjour.
+                                        <b data-i18n="label_discovery_wsdd_desc">WSDD позволяет серверу отображаться в разделе «Сеть» (Network) в Windows 10/11.</b><br>
+                                        <span data-i18n="label_discovery_avahi_desc">Avahi обеспечивает обнаружение сервера в macOS (Finder) и Linux через протокол mDNS/Bonjour.</span>
                                     </p>
                                 </div>
                             </div>
@@ -429,45 +436,45 @@
 
                     <div id="sec-debug" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="bug"></i> Логи и Отладка</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="bug"></i> <span data-i18n="set_title_debug">Логи и Отладка</span></h2></div>
                             <div style="padding: 2rem;">
-                                <div class="form-group"><label>Log Level</label>
+                                <div class="form-group"><label data-i18n="label_log_level">Log Level</label>
                                     <select name="log level">
-                                        <option value="1">1 (Стандарт)</option>
+                                        <option value="1" data-i18n="label_log_level_std">1 (Стандарт)</option>
                                         <option value="2">2</option>
                                         <option value="3">3 (Debug)</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Max Log Size (KB)</label><input type="number" name="max log size" value="1000"></div>
+                                <div class="form-group"><label data-i18n="label_log_max_size">Max Log Size (KB)</label><input type="number" name="max log size" value="1000"></div>
                             </div>
                         </div>
                     </div>
 
                     <div id="sec-panel-admins" class="settings-section" style="display:none;">
                         <div class="content-panel">
-                            <div class="panel-header"><h2><i data-lucide="shield-check"></i> Управление доступом к панели</h2></div>
+                            <div class="panel-header"><h2><i data-lucide="shield-check"></i> <span data-i18n="set_title_admin_access">Управление доступом к панели</span></h2></div>
                             <div style="padding: 2rem;">
                                 <div>
-                                    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Смена вашего пароля</h3>
-                                    <div class="form-group"><label>Старый пароль</label><input type="password" id="admin-old-pass"></div>
-                                    <div class="form-group"><label>Новый пароль</label><input type="password" id="admin-new-pass"></div>
-                                    <button type="button" class="btn-action btn-primary" onclick="changePanelPassword()">Сменить пароль</button>
+                                    <h3 style="font-size: 1rem; margin-bottom: 1rem;" data-i18n="label_admin_change_pass">Смена вашего пароля</h3>
+                                    <div class="form-group"><label data-i18n="label_admin_old_pass">Старый пароль</label><input type="password" id="admin-old-pass"></div>
+                                    <div class="form-group"><label data-i18n="label_admin_new_pass">Новый пароль</label><input type="password" id="admin-new-pass"></div>
+                                    <button type="button" class="btn-action btn-primary" onclick="changePanelPassword()" data-i18n="btn_admin_change_pass">Сменить пароль</button>
                                 </div>
 
                                 <div style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                                        <h3 style="font-size: 1rem;">Другие администраторы</h3>
+                                        <h3 style="font-size: 1rem;" data-i18n="label_admin_others">Другие администраторы</h3>
                                         <button type="button" class="btn-action btn-outline" onclick="openAdminModal()" style="font-size: 0.8rem;">
-                                            <i data-lucide="plus" style="width: 14px;"></i> Добавить
+                                            <i data-lucide="plus" style="width: 14px;"></i> <span data-i18n="btn_add">Добавить</span>
                                         </button>
                                     </div>
                                     <div class="table-container">
                                         <table>
                                             <thead>
                                                 <tr>
-                                                    <th>Логин</th>
-                                                    <th>Роль</th>
-                                                    <th>Действие</th>
+                                                    <th data-i18n="label_admin_user">Логин</th>
+                                                    <th data-i18n="label_admin_role">Роль</th>
+                                                    <th data-i18n="table_actions">Действие</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="panel-admins-table-body">
@@ -482,7 +489,7 @@
 
                     <div style="position: sticky; bottom: 2rem; display: flex; justify-content: flex-end; z-index: 100; pointer-events: none;">
                         <button type="submit" class="btn-action btn-success" style="padding: 1rem 2rem; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); pointer-events: auto;">
-                            <i data-lucide="save"></i> Сохранить все настройки
+                            <i data-lucide="save"></i> <span data-i18n="btn_save_all">Сохранить все настройки</span>
                         </button>
                     </div>
                 </form>
@@ -492,10 +499,10 @@
         <div id="tab-logs" class="tab-content" style="display:none;">
             <div class="content-panel" style="background: #0f172a; border: none; border-radius: 24px;">
                 <div class="panel-header" style="border-color: rgba(255,255,255,0.1);">
-                    <h2 style="color: #fff;">Логи системы</h2>
+                    <h2 style="color: #fff;" data-i18n="nav_logs">Логи системы</h2>
                     <div style="display: flex; gap: 1rem;">
                         <button class="btn-action btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border: none;" onclick="loadLogs()">
-                            <i data-lucide="refresh-cw"></i> Обновить
+                            <i data-lucide="refresh-cw"></i> <span data-i18n="nav_refresh">Обновить</span>
                         </button>
                     </div>
                 </div>
@@ -506,18 +513,18 @@
         <div id="tab-audit" class="tab-content" style="display:none;">
             <div class="content-panel">
                 <div class="panel-header">
-                    <h2>Журнал аудита</h2>
-                    <button class="btn-action btn-outline" onclick="loadAuditLogs()"><i data-lucide="refresh-cw"></i> Обновить</button>
+                    <h2 data-i18n="nav_audit">Журнал аудита</h2>
+                    <button class="btn-action btn-outline" onclick="loadAuditLogs()"><i data-lucide="refresh-cw"></i> <span data-i18n="nav_refresh">Обновить</span></button>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Время</th>
-                                <th>Пользователь</th>
-                                <th>IP</th>
-                                <th>Действие</th>
-                                <th>Файл / Объект</th>
+                                <th data-i18n="table_audit_time">Время</th>
+                                <th data-i18n="table_audit_user">Пользователь</th>
+                                <th data-i18n="table_audit_ip">IP</th>
+                                <th data-i18n="table_audit_action">Действие</th>
+                                <th data-i18n="table_audit_object">Файл / Объект</th>
                             </tr>
                         </thead>
                         <tbody id="audit-table-body"></tbody>
@@ -530,32 +537,32 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                 <div class="content-panel">
                     <div class="panel-header">
-                        <h2><i data-lucide="trash-2"></i> Сетевая корзина</h2>
+                        <h2><i data-lucide="trash-2"></i> <span data-i18n="label_share_recycle">Сетевая корзина</span></h2>
                     </div>
                     <div style="padding: 2rem;">
                         <div class="form-group">
-                            <label>Авто-очистка (дни)</label>
+                            <label data-i18n="label_auto_recycle_days">Авто-очистка (дни)</label>
                             <input type="number" id="auto-recycle-days" value="14">
-                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;">0 — отключить очистку</p>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;" data-i18n="label_auto_recycle_desc">0 — отключить очистку</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="content-panel">
                     <div class="panel-header">
-                        <h2><i data-lucide="history"></i> Теневые копии</h2>
+                        <h2><i data-lucide="history"></i> <span data-i18n="label_share_shadow">Теневые копии</span></h2>
                     </div>
                     <div style="padding: 2rem;">
                         <div class="form-group">
-                            <label>Интервал снимков</label>
+                            <label data-i18n="label_auto_snap_interval">Интервал снимков</label>
                             <select id="auto-snap-interval">
-                                <option value="none">Отключено</option>
-                                <option value="hourly">Раз в час</option>
-                                <option value="daily">Раз в день</option>
+                                <option value="none" data-i18n="label_not_set">Отключено</option>
+                                <option value="hourly" data-i18n="label_hourly">Раз в час</option>
+                                <option value="daily" data-i18n="label_daily">Раз в день</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Хранить копий</label>
+                            <label data-i18n="label_auto_snap_keep">Хранить копий</label>
                             <input type="number" id="auto-snap-keep" value="10">
                         </div>
                     </div>
@@ -563,20 +570,20 @@
             </div>
             <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
                 <button class="btn-action btn-success" onclick="saveAutomationSettings()">
-                    <i data-lucide="check-circle"></i> Применить настройки
+                    <i data-lucide="check-circle"></i> <span data-i18n="btn_apply_settings">Применить настройки</span>
                 </button>
             </div>
 
             <div class="content-panel" style="margin-top: 2rem; border-left: 6px solid #f59e0b;">
                 <div class="panel-header">
                     <div>
-                        <h2 style="color: #b45309; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="hammer"></i> Ручное обслуживание</h2>
-                        <p style="font-size: 0.85rem; color: #d97706; margin-top: 4px;">Мгновенное выполнение системных задач</p>
+                        <h2 style="color: #b45309; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="hammer"></i> <span data-i18n="label_maintenance_title">Ручное обслуживание</span></h2>
+                        <p style="font-size: 0.85rem; color: #d97706; margin-top: 4px;" data-i18n="label_maintenance_desc">Мгновенное выполнение системных задач</p>
                     </div>
                 </div>
                 <div style="padding: 2rem; display: flex; gap: 1rem;">
                     <button class="btn-action btn-success" style="background: #f59e0b;" onclick="clearRecycleBins()">
-                        <i data-lucide="trash-2"></i> Очистить все сетевые корзины
+                        <i data-lucide="trash-2"></i> <span data-i18n="btn_clear_recycle_full">Очистить все сетевые корзины</span>
                     </button>
                 </div>
             </div>
@@ -587,57 +594,57 @@
     <div id="share-modal" class="modal">
         <div class="modal-content">
             <div class="panel-header" style="border: none; padding: 2rem 2rem 1rem 2rem;">
-                <h2 id="modal-title">Настройка ресурса</h2>
+                <h2 id="modal-title" data-i18n="modal_share_title_edit">Настройка ресурса</h2>
                 <div class="close" onclick="closeShareModal()">&times;</div>
             </div>
 
             <div class="modal-tabs">
-                <div class="modal-tab active" onclick="showModalTab('general')">Основные</div>
-                <div class="modal-tab" onclick="showModalTab('access')">Доступ и Права</div>
-                <div class="modal-tab" onclick="showModalTab('automation-tab')">Автоматизация</div>
-                <div class="modal-tab" onclick="showModalTab('permissions')">Права ФС</div>
+                <div class="modal-tab active" onclick="showModalTab('general')" data-i18n="modal_tab_general">Основные</div>
+                <div class="modal-tab" onclick="showModalTab('access')" data-i18n="modal_tab_access">Доступ и Права</div>
+                <div class="modal-tab" onclick="showModalTab('automation-tab')" data-i18n="modal_tab_automation">Автоматизация</div>
+                <div class="modal-tab" onclick="showModalTab('permissions')" data-i18n="modal_tab_permissions">Права ФС</div>
             </div>
 
             <form id="share-form" style="display: flex; flex-direction: column; flex-grow: 1;">
                 <div class="modal-tab-container" style="padding: 2rem; flex-grow: 1; overflow-y: auto;">
                     <div id="m-tab-general" class="m-tab-content">
-                        <div class="form-group"><label>Имя ресурса</label><input type="text" id="share-name" required></div>
-                        <div class="form-group"><label>Путь к папке</label><input type="text" id="share-path" required></div>
-                        <div class="form-group"><label>Комментарий</label><input type="text" id="share-comment"></div>
+                        <div class="form-group"><label data-i18n="label_share_name">Имя ресурса</label><input type="text" id="share-name" required></div>
+                        <div class="form-group"><label data-i18n="label_share_path">Путь к папке</label><input type="text" id="share-path" required></div>
+                        <div class="form-group"><label data-i18n="label_share_comment">Комментарий</label><input type="text" id="share-comment"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <label class="switch-label"><input type="checkbox" id="share-browseable" checked> <span>Видимость</span></label>
-                            <label class="switch-label"><input type="checkbox" id="share-readonly"> <span>Только чтение</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-browseable" checked> <span data-i18n="label_share_browseable">Видимость</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-readonly"> <span data-i18n="label_share_readonly">Только чтение</span></label>
                         </div>
                     </div>
                     <div id="m-tab-access" class="m-tab-content" style="display:none;">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <label class="switch-label"><input type="checkbox" id="share-guest" checked> <span>Гостевой доступ</span></label>
-                            <label class="switch-label"><input type="checkbox" id="share-guest-only"> <span>Только гости</span></label>
-                            <label class="switch-label"><input type="checkbox" id="share-inherit-acls" checked> <span>Наследование ACL</span></label>
-                            <label class="switch-label"><input type="checkbox" id="share-audit"> <span>Аудит действий</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-guest" checked> <span data-i18n="label_share_guest">Гостевой доступ</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-guest-only"> <span data-i18n="label_share_guest_only">Только гости</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-inherit-acls" checked> <span data-i18n="label_share_inherit_acls">Наследование ACL</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-audit"> <span data-i18n="label_share_audit">Аудит действий</span></label>
                         </div>
 
                         <div id="audit-info" style="display:none; margin-top: 1.5rem; padding: 1.5rem; background: rgba(245, 158, 11, 0.05); border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.2);">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-unlink" checked> Удаление</label>
-                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-rename" checked> Переименование</label>
-                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-mkdir" checked> Создание папок</label>
-                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-open"> Открытие</label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-unlink" checked> <span data-i18n="audit_unlink">Удаление</span></label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-rename" checked> <span data-i18n="audit_rename">Переименование</span></label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-mkdir" checked> <span data-i18n="audit_mkdir">Создание папок</span></label>
+                                <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="audit-open"> <span data-i18n="audit_open">Открытие</span></label>
                             </div>
                         </div>
 
                         <div style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <div class="form-group"><label>Маска файлов</label><input type="text" id="share-create-mask" value="0664"></div>
-                            <div class="form-group"><label>Маска папок</label><input type="text" id="share-dir-mask" value="0775"></div>
+                            <div class="form-group"><label data-i18n="label_share_create_mask">Маска файлов</label><input type="text" id="share-create-mask" value="0664"></div>
+                            <div class="form-group"><label data-i18n="label_share_dir_mask">Маска папок</label><input type="text" id="share-dir-mask" value="0775"></div>
                         </div>
 
                         <div style="margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 1rem;">
-                            <h4 style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-secondary);">Ограничения по IP</h4>
+                            <h4 style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-secondary);" data-i18n="label_share_ip_restrictions">Ограничения по IP</h4>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                 <div class="form-group">
                                     <label>Hosts Allow</label>
                                     <input type="text" id="share-hosts-allow" placeholder="192.168.1.0/24">
-                                    <p style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px;">Пример: 192.168.1.0/24, 10.0.0.5</p>
+                                    <p style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px;" data-i18n="label_share_hosts_allow_desc">Пример: 192.168.1.0/24, 10.0.0.5</p>
                                 </div>
                                 <div class="form-group">
                                     <label>Hosts Deny</label>
@@ -648,57 +655,57 @@
                     </div>
                     <div id="m-tab-automation-tab" class="m-tab-content" style="display:none;">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                            <label class="switch-label"><input type="checkbox" id="share-recycle"> <span>Сетевая корзина</span></label>
-                            <label class="switch-label"><input type="checkbox" id="share-shadow"> <span>Теневые копии</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-recycle"> <span data-i18n="label_share_recycle">Сетевая корзина</span></label>
+                            <label class="switch-label"><input type="checkbox" id="share-shadow"> <span data-i18n="label_share_shadow">Теневые копии</span></label>
                         </div>
 
                         <div id="recycle-info" style="display:none; padding: 1.5rem; background: #f8fafc; border-radius: 16px; border: 1px solid var(--border-color);">
-                            <div class="form-group"><label>Путь к корзине</label><input type="text" id="share-recycle-repo"></div>
-                            <div class="form-group"><label>Исключить файлы</label><input type="text" id="share-recycle-exclude"></div>
-                            <div class="form-group"><label>Исключить папки</label><input type="text" id="share-recycle-exclude-dir"></div>
+                            <div class="form-group"><label data-i18n="label_share_recycle_repo">Путь к корзине</label><input type="text" id="share-recycle-repo"></div>
+                            <div class="form-group"><label data-i18n="label_share_recycle_exclude">Исключить файлы</label><input type="text" id="share-recycle-exclude"></div>
+                            <div class="form-group"><label data-i18n="label_share_recycle_exclude_dir">Исключить папки</label><input type="text" id="share-recycle-exclude-dir"></div>
                         </div>
 
                         <div id="shadow-info" style="display:none; margin-top: 1rem; font-size: 0.85rem; color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
-                            <i data-lucide="info" style="width: 14px; vertical-align: middle; margin-right: 4px;"></i> Снимки создаются по глобальному расписанию.
+                            <i data-lucide="info" style="width: 14px; vertical-align: middle; margin-right: 4px;"></i> <span data-i18n="label_share_shadow_desc">Снимки создаются по глобальному расписанию.</span>
                         </div>
                     </div>
                     <div id="m-tab-permissions" class="m-tab-content" style="display:none;">
                         <div style="background: rgba(245, 158, 11, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.2); margin-bottom: 1.5rem; font-size: 0.8rem; color: #b45309;">
                             <i data-lucide="alert-triangle" style="width: 16px; vertical-align: middle; margin-right: 4px;"></i> 
-                            Изменение владельца или прав может повлиять на доступ пользователей к файлам. Будьте осторожны.
+                            <span data-i18n="label_share_perm_warning">Изменение владельца или прав может повлиять на доступ пользователей к файлам. Будьте осторожны.</span>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group"><label>Владелец (User)</label><input type="text" id="fs-owner" placeholder="root"></div>
-                            <div class="form-group"><label>Группа (Group)</label><input type="text" id="fs-group" placeholder="root"></div>
+                            <div class="form-group"><label data-i18n="label_share_owner">Владелец (User)</label><input type="text" id="fs-owner" placeholder="root"></div>
+                            <div class="form-group"><label data-i18n="label_share_group">Группа (Group)</label><input type="text" id="fs-group" placeholder="root"></div>
                         </div>
-                        <div class="form-group"><label>Права (Octal Mode)</label><input type="text" id="fs-mode" placeholder="0755" oninput="updatePermChecks(this.value)"></div>
+                        <div class="form-group"><label data-i18n="label_share_mode">Права (Octal Mode)</label><input type="text" id="fs-mode" placeholder="0755" oninput="updatePermChecks(this.value)"></div>
                         
                         <div class="permissions-visual" style="margin-bottom: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 16px; border: 1px solid var(--border-color);">
                             <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
                                 <thead>
                                     <tr style="color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">
-                                        <th style="text-align: left; padding: 0 0 1rem 0.75rem; width: 40%;">Область</th>
-                                        <th style="text-align: center; padding-bottom: 1rem;">Чтение</th>
-                                        <th style="text-align: center; padding-bottom: 1rem;">Запись</th>
-                                        <th style="text-align: center; padding-bottom: 1rem;">Выполнение</th>
+                                        <th style="text-align: left; padding: 0 0 1rem 0.75rem; width: 40%;" data-i18n="label_share_perm_area">Область</th>
+                                        <th style="text-align: center; padding-bottom: 1rem;" data-i18n="label_share_perm_read">Чтение</th>
+                                        <th style="text-align: center; padding-bottom: 1rem;" data-i18n="label_share_perm_write">Запись</th>
+                                        <th style="text-align: center; padding-bottom: 1rem;" data-i18n="label_share_perm_exec">Выполнение</th>
                                     </tr>
                                 </thead>
                                 <tbody id="perm-matrix">
                                     <tr style="border-top: 1px solid #f1f5f9;">
-                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong>Владелец</strong></td>
+                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong data-i18n="label_share_perm_owner">Владелец</strong></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="u" data-bit="4" onchange="updateOctalFromChecks()"></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="u" data-bit="2" onchange="updateOctalFromChecks()"></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="u" data-bit="1" onchange="updateOctalFromChecks()"></td>
                                     </tr>
                                     <tr style="border-top: 1px solid #f1f5f9;">
-                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong>Группа</strong></td>
+                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong data-i18n="label_share_perm_group">Группа</strong></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="g" data-bit="4" onchange="updateOctalFromChecks()"></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="g" data-bit="2" onchange="updateOctalFromChecks()"></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="g" data-bit="1" onchange="updateOctalFromChecks()"></td>
                                     </tr>
                                     <tr style="border-top: 1px solid #f1f5f9;">
-                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong>Остальные</strong></td>
+                                        <td style="padding: 0.75rem 0 0.75rem 0.75rem;"><strong data-i18n="label_share_perm_others">Остальные</strong></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="o" data-bit="4" onchange="updateOctalFromChecks()"></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="o" data-bit="2" onchange="updateOctalFromChecks()"></td>
                                         <td style="text-align: center;"><input type="checkbox" class="perm-check" data-type="o" data-bit="1" onchange="updateOctalFromChecks()"></td>
@@ -707,21 +714,21 @@
                             </table>
                         </div>
                         
-                        <label class="switch-label" style="margin-bottom: 1.5rem;"><input type="checkbox" id="fs-recursive"> <span>Применить рекурсивно</span></label>
+                        <label class="switch-label" style="margin-bottom: 1.5rem;"><input type="checkbox" id="fs-recursive"> <span data-i18n="label_share_recursive">Применить рекурсивно</span></label>
 
                         <div style="margin-top: 1rem;">
-                            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Текущие ACL (getfacl)</h4>
+                            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-secondary);" data-i18n="label_share_current_acls">Текущие ACL (getfacl)</h4>
                             <pre id="fs-acl-output" style="background: #f1f5f9; padding: 1rem; border-radius: 12px; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: #475569; max-height: 150px; overflow-y: auto;"></pre>
                         </div>
                         
-                        <button type="button" class="btn-action btn-outline" style="width: 100%; margin-top: 1rem;" onclick="savePathPermissions()">
+                        <button type="button" class="btn-action btn-outline" style="width: 100%; margin-top: 1rem;" onclick="savePathPermissions()" data-i18n="btn_apply_perms">
                             Применить права к папке
                         </button>
                     </div>
                 </div>
                 <div class="modal-footer" style="padding: 1.5rem 2rem; background: #f8fafc; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid #f1f5f9;">
-                    <button type="button" class="btn-action btn-outline" onclick="closeShareModal()">Отмена</button>
-                    <button type="submit" class="btn-action btn-primary">Сохранить</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closeShareModal()" data-i18n="btn_cancel">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary" data-i18n="btn_save">Сохранить</button>
                 </div>
             </form>
         </div>
@@ -731,15 +738,15 @@
     <div id="user-modal" class="modal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="panel-header">
-                <h2 id="user-modal-title">Новый пользователь</h2>
+                <h2 id="user-modal-title" data-i18n="modal_user_title_new">Новый пользователь</h2>
                 <div class="close" onclick="closeUserModal()">&times;</div>
             </div>
             <form id="user-form" style="padding: 2rem;">
-                <div class="form-group"><label>Имя пользователя</label><input type="text" id="user-username" required autocomplete="username"></div>
-                <div class="form-group"><label>Пароль Samba</label><input type="password" id="user-password" required autocomplete="new-password"></div>
+                <div class="form-group"><label data-i18n="label_user_username">Имя пользователя</label><input type="text" id="user-username" required autocomplete="username"></div>
+                <div class="form-group"><label data-i18n="label_user_password">Пароль Samba</label><input type="password" id="user-password" required autocomplete="new-password"></div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action btn-outline" onclick="closeUserModal()">Отмена</button>
-                    <button type="submit" class="btn-action btn-primary">Создать</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closeUserModal()" data-i18n="btn_cancel">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary" data-i18n="btn_create">Создать</button>
                 </div>
             </form>
         </div>
@@ -749,18 +756,18 @@
     <div id="password-modal" class="modal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="panel-header">
-                <h2>Смена пароля</h2>
+                <h2 data-i18n="modal_password_title">Смена пароля</h2>
                 <div class="close" onclick="closePasswordModal()">&times;</div>
             </div>
             <form id="password-form" style="padding: 2rem;">
                 <input type="text" id="pass-username" style="display:none;" autocomplete="username">
                 <div class="form-group">
-                    <label>Новый пароль для <span id="pass-user-display" style="font-weight:bold; color: var(--accent-blue);"></span></label>
+                    <label><span data-i18n="label_password_new">Новый пароль для</span> <span id="pass-user-display" style="font-weight:bold; color: var(--accent-blue);"></span></label>
                     <input type="password" id="new-password" required autocomplete="new-password">
                 </div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action btn-outline" onclick="closePasswordModal()">Отмена</button>
-                    <button type="submit" class="btn-action btn-primary">Обновить</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closePasswordModal()" data-i18n="btn_cancel">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary" data-i18n="btn_update">Обновить</button>
                 </div>
             </form>
         </div>
@@ -773,14 +780,14 @@
     <div id="group-modal" class="modal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="panel-header">
-                <h2 id="group-modal-title">Новая группа</h2>
+                <h2 id="group-modal-title" data-i18n="modal_group_title_new">Новая группа</h2>
                 <div class="close" onclick="closeGroupModal()">&times;</div>
             </div>
             <form id="group-form" style="padding: 2rem;">
-                <div class="form-group"><label>Имя группы</label><input type="text" id="group-name" required></div>
+                <div class="form-group"><label data-i18n="label_group_name">Имя группы</label><input type="text" id="group-name" required></div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action btn-outline" onclick="closeGroupModal()">Отмена</button>
-                    <button type="submit" class="btn-action btn-primary">Создать</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closeGroupModal()" data-i18n="btn_cancel">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary" data-i18n="btn_create">Создать</button>
                 </div>
             </form>
         </div>
@@ -790,30 +797,30 @@
     <div id="group-members-modal" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <div class="panel-header">
-                <h2>Участники группы: <span id="group-members-title" style="color: var(--accent-blue);"></span></h2>
+                <h2><span data-i18n="modal_group_members_title">Участники группы</span>: <span id="group-members-title" style="color: var(--accent-blue);"></span></h2>
                 <div class="close" onclick="closeGroupMembersModal()">&times;</div>
             </div>
             <div style="padding: 2rem;">
                 <div class="form-group">
-                    <label>Добавить пользователя</label>
+                    <label data-i18n="label_group_add_user">Добавить пользователя</label>
                     <div style="display: flex; gap: 0.5rem;">
                         <select id="group-add-user-select" style="flex-grow: 1;"></select>
-                        <button class="btn-action btn-primary" onclick="addGroupMember()">Добавить</button>
+                        <button class="btn-action btn-primary" onclick="addGroupMember()" data-i18n="btn_add">Добавить</button>
                     </div>
                 </div>
                 <div class="table-container" style="margin-top: 1.5rem; max-height: 300px; overflow-y: auto;">
                     <table>
                         <thead>
                             <tr>
-                                <th>Пользователь</th>
-                                <th>Действие</th>
+                                <th data-i18n="table_user">Пользователь</th>
+                                <th data-i18n="table_actions">Действие</th>
                             </tr>
                         </thead>
                         <tbody id="group-members-table-body"></tbody>
                     </table>
                 </div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
-                    <button type="button" class="btn-action btn-outline" onclick="closeGroupMembersModal()">Закрыть</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closeGroupMembersModal()" data-i18n="btn_close">Закрыть</button>
                 </div>
             </div>
         </div>
@@ -822,22 +829,22 @@
     <div id="admin-modal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="panel-header">
-                <h2>Новый администратор панели</h2>
+                <h2 data-i18n="modal_admin_title_new">Новый администратор панели</h2>
                 <div class="close" onclick="closeAdminModal()">&times;</div>
             </div>
             <form id="admin-form" style="padding: 2rem;">
-                <div class="form-group"><label>Логин</label><input type="text" id="new-admin-user" required autocomplete="username"></div>
-                <div class="form-group"><label>Пароль</label><input type="password" id="new-admin-pass" required autocomplete="new-password"></div>
+                <div class="form-group"><label data-i18n="label_admin_user">Логин</label><input type="text" id="new-admin-user" required autocomplete="username"></div>
+                <div class="form-group"><label data-i18n="label_admin_pass">Пароль</label><input type="password" id="new-admin-pass" required autocomplete="new-password"></div>
                 <div class="form-group">
-                    <label>Роль</label>
+                    <label data-i18n="label_admin_role">Роль</label>
                     <select id="new-admin-role">
-                        <option value="admin">Admin</option>
-                        <option value="superadmin">SuperAdmin</option>
+                        <option value="admin" data-i18n="role_admin">Администратор</option>
+                        <option value="superadmin" data-i18n="role_superadmin">Супер-админ</option>
                     </select>
                 </div>
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                    <button type="button" class="btn-action btn-outline" onclick="closeAdminModal()">Отмена</button>
-                    <button type="submit" class="btn-action btn-primary">Создать</button>
+                    <button type="button" class="btn-action btn-outline" onclick="closeAdminModal()" data-i18n="btn_cancel">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary" data-i18n="btn_create">Создать</button>
                 </div>
             </form>
         </div>
@@ -855,14 +862,14 @@
             lucide.createIcons();
             
             const subtitles = {
-                'dashboard': 'Мониторинг и управление Samba-сервером',
-                'shares': 'Управление сетевыми ресурсами и доступом',
-                'users': 'Управление аккаунтами пользователей Samba',
-                'groups': 'Управление группами и членством пользователей',
-                'global': 'Основные параметры конфигурации smb.conf',
-                'logs': 'Просмотр системных событий в реальном времени',
-                'audit': 'История действий пользователей с файлами',
-                'automation': 'Настройка автоматического обслуживания'
+                'dashboard': i18n('subtitle_dashboard'),
+                'shares': i18n('subtitle_shares'),
+                'users': i18n('subtitle_users'),
+                'groups': i18n('subtitle_groups'),
+                'global': i18n('subtitle_global'),
+                'logs': i18n('subtitle_logs'),
+                'audit': i18n('subtitle_audit'),
+                'automation': i18n('subtitle_automation')
             };
             const subEl = document.getElementById('page-subtitle');
             if (subEl) subEl.innerText = subtitles[tabName] || '';

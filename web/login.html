@@ -76,19 +76,61 @@
     </style>
 </head>
 <body>
+    <div style="position: absolute; top: 2rem; right: 2rem; display: flex; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); padding: 4px; border-radius: 12px; gap: 4px; border: 1px solid rgba(255,255,255,0.1);">
+        <button class="btn-action btn-outline lang-btn" onclick="setLanguage('ru')" style="padding: 4px 8px; height: 28px; font-size: 0.7rem; min-width: 32px; background: none; border: none; color: white; cursor: pointer; font-weight: 600;">RU</button>
+        <button class="btn-action btn-outline lang-btn" onclick="setLanguage('en')" style="padding: 4px 8px; height: 28px; font-size: 0.7rem; min-width: 32px; background: none; border: none; color: white; cursor: pointer; font-weight: 600;">EN</button>
+        <button class="btn-action btn-outline lang-btn" onclick="setLanguage('zh')" style="padding: 4px 8px; height: 28px; font-size: 0.7rem; min-width: 32px; background: none; border: none; color: white; cursor: pointer; font-weight: 600;">ZH</button>
+        <button class="btn-action btn-outline lang-btn" onclick="setLanguage('es')" style="padding: 4px 8px; height: 28px; font-size: 0.7rem; min-width: 32px; background: none; border: none; color: white; cursor: pointer; font-weight: 600;">ES</button>
+    </div>
+
     <div class="login-card">
         <div class="logo">SAMBA<span>ADMIN</span></div>
-        <h1>Добро пожаловать</h1>
-        <p>Введите данные администратора</p>
+        <h1 data-i18n="login_welcome">Добро пожаловать</h1>
+        <p data-i18n="login_subtitle">Введите данные администратора</p>
         <form id="login-form">
-            <input type="text" id="username" placeholder="Логин" required autofocus>
-            <input type="password" id="password" placeholder="Пароль" required>
-            <button type="submit">Войти в панель</button>
+            <input type="text" id="username" placeholder="Логин" required autofocus data-i18n-placeholder="login_user_placeholder">
+            <input type="password" id="password" placeholder="Пароль" required data-i18n-placeholder="login_pass_placeholder">
+            <button type="submit" data-i18n="login_btn">Войти в панель</button>
         </form>
-        <div id="error-msg" class="error">Неверный логин или пароль.</div>
+        <div id="error-msg" class="error" data-i18n="login_error">Неверный логин или пароль.</div>
     </div>
 
     <script>
+        let i18n_data = {};
+        let currentLang = localStorage.getItem('panel_lang') || 'ru';
+
+        async function loadLanguage(lang) {
+            if (i18n_data[lang]) return;
+            const res = await fetch(`/locales/${lang}.json`);
+            i18n_data[lang] = await res.json();
+        }
+
+        async function setLanguage(lang) {
+            await loadLanguage(lang);
+            currentLang = lang;
+            localStorage.setItem('panel_lang', lang);
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.innerText = i18n_data[lang][key] || key;
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                el.placeholder = i18n_data[lang][key] || key;
+            });
+            
+            // Подсветка кнопок переключения языка
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                const isMatch = btn.getAttribute('onclick').includes(`'${lang}'`);
+                btn.style.background = isMatch ? 'rgba(255,255,255,0.2)' : 'transparent';
+            });
+        }
+
+        (async () => {
+            await loadLanguage(currentLang);
+            setLanguage(currentLang);
+        })();
+
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
