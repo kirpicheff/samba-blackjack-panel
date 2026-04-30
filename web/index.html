@@ -35,6 +35,11 @@
                 <button id="btn-apply" class="btn-action" style="background: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; display: none;" onclick="applyChanges()">
                     Применить изменения
                 </button>
+                <div style="display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px; border: 1px solid #e2e8f0;">
+                    <button class="btn-action" onclick="controlService('start')" style="padding: 4px 10px; font-size: 0.7rem; background: white; border: 1px solid #e2e8f0;">Start</button>
+                    <button class="btn-action" onclick="controlService('stop')" style="padding: 4px 10px; font-size: 0.7rem; background: white; border: 1px solid #e2e8f0;">Stop</button>
+                    <button class="btn-action" onclick="controlService('restart')" style="padding: 4px 10px; font-size: 0.7rem; background: white; border: 1px solid #e2e8f0;">Restart</button>
+                </div>
                 <div id="samba-status-badge" class="badge online">SMB: ONLINE</div>
             </div>
         </header>
@@ -53,17 +58,6 @@
                 <div class="stat-card">
                     <div class="stat-label">Версия Samba</div>
                     <div class="stat-value mono" id="samba-version" style="font-size: 1rem;">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Статус сервиса (smbd)</div>
-                    <div id="service-status-value" class="stat-value" style="font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <span class="badge" id="service-status-badge">Checking...</span>
-                    </div>
-                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                        <button class="btn-action" onclick="controlService('start')" style="padding: 2px 8px; font-size: 0.7rem;">Start</button>
-                        <button class="btn-action" onclick="controlService('stop')" style="padding: 2px 8px; font-size: 0.7rem;">Stop</button>
-                        <button class="btn-action" onclick="controlService('restart')" style="padding: 2px 8px; font-size: 0.7rem;">Restart</button>
-                    </div>
                 </div>
             </div>
 

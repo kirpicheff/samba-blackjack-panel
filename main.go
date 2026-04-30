@@ -162,10 +162,14 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k, v := range share.Params {
-		if k == "path" || k == "comment" || k == "vfs objects" {
+		if k == "path" || k == "comment" || k == "vfs objects" || strings.Contains(k, "recycle:") || strings.Contains(k, "full_audit:") {
 			continue
 		}
-		section.Key(k).SetValue(v)
+		if v != "" {
+			section.Key(k).SetValue(v)
+		} else {
+			section.DeleteKey(k)
+		}
 	}
 
 	vfs := []string{"acl_xattr"}
@@ -285,7 +289,11 @@ func saveGlobalConfig(w http.ResponseWriter, r *http.Request) {
 
 	section := cfg.Section("global")
 	for k, v := range config.Params {
-		section.Key(k).SetValue(v)
+		if v != "" {
+			section.Key(k).SetValue(v)
+		} else {
+			section.DeleteKey(k)
+		}
 	}
 
 	if err := cfg.SaveTo(path); err != nil {

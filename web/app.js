@@ -54,25 +54,16 @@ async function updateServiceStatus() {
     try {
         const res = await fetch('/api/service/status');
         const status = await res.text();
-        const badge = document.getElementById('service-status-badge');
         const topBadge = document.getElementById('samba-status-badge');
         
         if (status === 'active') {
-            badge.innerText = 'RUNNING';
-            badge.className = 'badge online';
-            if (topBadge) {
-                topBadge.innerText = 'SMB: ONLINE';
-                topBadge.className = 'badge online';
-            }
+            topBadge.innerText = 'SMB: ONLINE';
+            topBadge.className = 'badge online';
+            topBadge.style.background = '#10b981';
         } else {
-            badge.innerText = status.toUpperCase() || 'STOPPED';
-            badge.className = 'badge';
-            badge.style.background = '#64748b';
-            if (topBadge) {
-                topBadge.innerText = 'SMB: OFFLINE';
-                topBadge.className = 'badge';
-                topBadge.style.background = '#ef4444';
-            }
+            topBadge.innerText = 'SMB: OFFLINE';
+            topBadge.className = 'badge offline';
+            topBadge.style.background = '#ef4444';
         }
     } catch (e) { console.error(e); }
 }
