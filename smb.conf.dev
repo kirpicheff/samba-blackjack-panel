@@ -1,6 +1,25 @@
 [global]
-  workgroup = WORKGROUP
+workgroup = WORKGROUP
 
 [Обмен]
-  path = /tmp
-  vfs objects = acl_xattr recycle
+path                     = /tmp
+inherit acls             = yes
+read only                = yes
+guest ok                 = yes
+browseable               = yes
+force directory mode     = 0775
+guest only               = no
+create mask              = 0664
+directory mask           = 0775
+force create mode        = 0664
+`recycle:repository`     = .recycle/guest
+`recycle:keeptree`       = yes
+`recycle:versions`       = yes
+`recycle:touch`          = yes
+`recycle:directory_mode` = 0770
+`recycle:exclude`        = *.tmp *.temp ~$* *.bak Thumbs.db
+`recycle:exclude_dir`    = /tmp /cache .recycle
+`shadow:snapdir`         = .snapshots
+`shadow:sort`            = desc
+`shadow:format`          = @GMT-%Y.%m.%d-%H.%M.%S
+vfs objects              = acl_xattr recycle shadow_copy2

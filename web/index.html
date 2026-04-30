@@ -21,6 +21,7 @@
             <div class="nav-item" onclick="showTab('global', this)">Настройки сервера</div>
             <div class="nav-item" onclick="showTab('logs', this)">Логи системы</div>
             <div class="nav-item" onclick="showTab('audit', this)">Журнал аудита</div>
+            <div class="nav-item" onclick="showTab('automation', this)">Автоматизация</div>
             <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid #e2e8f0; margin-top: 2rem; padding-top: 1.5rem;">Выход</div>
         </nav>
         <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569;">
@@ -255,6 +256,46 @@
                 </div>
             </div>
         </div>
+
+        <!-- Вкладка Автоматизация -->
+        <div id="tab-automation" class="tab-content" style="display:none;">
+            <header>
+                <h1>Автоматизация и обслуживание</h1>
+                <button class="btn-action" style="background: #10b981; color: white; border: none;" onclick="saveAutomationSettings()">Сохранить настройки</button>
+            </header>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="content-panel">
+                    <div class="panel-header"><h2>Сетевая корзина</h2></div>
+                    <div style="padding: 1.5rem;">
+                        <div class="form-group">
+                            <label>Авто-очистка (удалять файлы старше X дней)</label>
+                            <input type="number" id="auto-recycle-days" value="14">
+                            <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem;">0 — отключить автоматическую очистку</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-panel">
+                    <div class="panel-header"><h2>Теневые копии (Snapshots)</h2></div>
+                    <div style="padding: 1.5rem;">
+                        <div class="form-group">
+                            <label>Периодичность снимков</label>
+                            <select id="auto-snap-interval">
+                                <option value="none">Отключено</option>
+                                <option value="hourly">Раз в час</option>
+                                <option value="daily">Раз в день</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Сколько копий хранить</label>
+                            <input type="number" id="auto-snap-keep" value="10">
+                        </div>
+                        <p style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem;">Снимки используют жесткие ссылки (hardlinks) и экономят место.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Модальное окно ресурса -->
@@ -292,6 +333,9 @@
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
                         <input type="checkbox" id="share-audit"> Аудит действий (full_audit)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                        <input type="checkbox" id="share-shadow"> Теневые копии (shadow_copy2)
                     </label>
                 </div>
                 <div id="recycle-info" style="display:none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">

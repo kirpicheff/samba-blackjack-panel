@@ -23,6 +23,7 @@ function showTab(tabName, element) {
     if (tabName === 'global') loadGlobalConfig();
     if (tabName === 'logs') loadLogs();
     if (tabName === 'audit') loadAuditLogs();
+    if (tabName === 'automation') loadAutomationSettings();
 }
 
 async function updateStatus() {
@@ -120,6 +121,7 @@ function openShareModal(share = null) {
     document.getElementById('share-comment').value = share ? (share.params.comment || '') : '';
     document.getElementById('share-recycle').checked = share ? share.is_recycle : false;
     document.getElementById('share-audit').checked = share ? share.is_audit : false;
+    document.getElementById('share-shadow').checked = share ? share.is_shadow_copy : false;
     document.getElementById('share-readonly').checked = share ? (share.params['read only'] !== 'no') : false;
     document.getElementById('share-guest').checked = share ? (share.params['guest ok'] !== 'no') : true;
     document.getElementById('share-browseable').checked = share ? (share.params['browseable'] !== 'no') : true;
@@ -192,6 +194,7 @@ document.getElementById('share-form').onsubmit = async (e) => {
         comment: document.getElementById('share-comment').value,
         is_recycle: document.getElementById('share-recycle').checked,
         is_audit: document.getElementById('share-audit').checked,
+        is_shadow_copy: document.getElementById('share-shadow').checked,
         audit_open: document.getElementById('audit-open').checked,
         params: {
             'read only': document.getElementById('share-readonly').checked ? 'yes' : 'no',
@@ -493,6 +496,31 @@ async function clearRecycleBins() {
 async function logout() {
     await fetch('/api/logout');
     window.location.href = '/login.html';
+}
+
+async function loadAutomationSettings() {
+    try {
+        const res = await fetch('/api/automation');
+        const s = await res.json();
+        document.getElementById('auto-recycle-days').value = s.recycle_days;
+        document.getElementById('auto-snap-interval').value = s.snapshot_interval;
+        document.getElementById('auto-snap-keep').value = s.snapshot_keep;
+    } catch (e) { console.error(e); }
+}
+
+async function saveAutomationSettings() {
+    const s = {
+        recycle_days: parseInt(document.getElementById('auto-recycle-days').value),
+        snapshot_interval: document.getElementById('auto-snap-interval').value,
+        snapshot_keep: parseInt(document.getElementById('auto-snap-keep').value)
+    };
+    try {
+        await fetch('/api/automation/save', {
+            method: 'POST',
+            body: JSON.stringify(s)
+        });
+        alert('Настройки автоматизации сохранены');
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
 const style = document.createElement('style');

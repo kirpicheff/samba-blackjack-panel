@@ -57,11 +57,20 @@ type ShareInfo struct {
 	Name      string            `json:"name"`
 	Path      string            `json:"path"`
 	Comment   string            `json:"comment"`
-	IsRecycle bool              `json:"is_recycle"`
-	IsAudit   bool              `json:"is_audit"`
-	AuditOpen bool              `json:"audit_open"`
-	Params    map[string]string `json:"params"`
+	IsRecycle    bool              `json:"is_recycle"`
+	IsAudit      bool              `json:"is_audit"`
+	AuditOpen    bool              `json:"audit_open"`
+	IsShadowCopy bool              `json:"is_shadow_copy"`
+	Params       map[string]string `json:"params"`
 }
+
+type AutomationSettings struct {
+	RecycleDays      int    `json:"recycle_days"`
+	SnapshotInterval string `json:"snapshot_interval"` // "none", "hourly", "daily"
+	SnapshotKeep     int    `json:"snapshot_keep"`
+}
+
+var automationFile = "automation.json"
 
 type GlobalConfig struct {
 	Params map[string]string `json:"params"`
@@ -123,11 +132,12 @@ func getShares(w http.ResponseWriter, r *http.Request) {
 			Params: section.KeysHash(),
 		}
 		
-		// Проверяем наличие корзины и аудита в vfs objects
+		// Проверяем наличие корзины, аудита и теневых копий в vfs objects
 		vfs := section.Key("vfs objects").String()
 		share.IsRecycle = strings.Contains(vfs, "recycle")
 		share.IsAudit = strings.Contains(vfs, "full_audit")
 		share.AuditOpen = strings.Contains(section.Key("full_audit:success").String(), "open")
+		share.IsShadowCopy = strings.Contains(vfs, "shadow_copy2")
 		
 		shares = append(shares, share)
 	}
@@ -215,6 +225,17 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(k, "full_audit:") { section.DeleteKey(k) }
 		}
 	}
+	if share.IsShadowCopy {
+		vfs = append(vfs, "shadow_copy2")
+		section.Key("shadow:snapdir").SetValue(".snapshots")
+		section.Key("shadow:sort").SetValue("desc")
+		section.Key("shadow:format").SetValue("@GMT-%Y.%m.%d-%H.%M.%S")
+	} else {
+		section.DeleteKey("shadow:snapdir")
+		section.DeleteKey("shadow:sort")
+		section.DeleteKey("shadow:format")
+	}
+
 	section.Key("vfs objects").SetValue(strings.Join(vfs, " "))
 
 	createConfigBackup() // Делаем бэкап перед сохранением
@@ -795,6 +816,8 @@ func main() {
 	http.HandleFunc("/api/service/control", authMiddleware(controlServiceHandler))
 	http.HandleFunc("/api/logs", authMiddleware(getLogsHandler))
 	http.HandleFunc("/api/audit", authMiddleware(getAuditLogsHandler))
+	http.HandleFunc("/api/automation", authMiddleware(getAutomationHandler))
+	http.HandleFunc("/api/automation/save", authMiddleware(saveAutomationHandler))
 	http.HandleFunc("/api/maintenance/clear-recycle", authMiddleware(clearRecycleBinsHandler))
 	http.HandleFunc("/api/disk/usage", authMiddleware(getDiskUsageHandler))
 	http.HandleFunc("/api/status", authMiddleware(getSambaStatus))
@@ -808,5 +831,128 @@ func main() {
 
 	port := ":8888"
 	fmt.Printf("🚀 Samba Blackjack Panel запущен на http://localhost%s\n", port)
+	
+	// Запуск фонового воркера
+	go backgroundWorker()
+
 	log.Fatal(http.ListenAndServe(port, nil))
+}
+
+func loadAutomationSettings() AutomationSettings {
+	var s AutomationSettings
+	data, err := os.ReadFile(automationFile)
+	if err != nil {
+		return AutomationSettings{RecycleDays: 14, SnapshotInterval: "none", SnapshotKeep: 10}
+	}
+	json.Unmarshal(data, &s)
+	return s
+}
+
+func getAutomationHandler(w http.ResponseWriter, r *http.Request) {
+	s := loadAutomationSettings()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s)
+}
+
+func saveAutomationHandler(w http.ResponseWriter, r *http.Request) {
+	var s AutomationSettings
+	json.NewDecoder(r.Body).Decode(&s)
+	data, _ := json.MarshalIndent(s, "", "  ")
+	os.WriteFile(automationFile, data, 0644)
+	w.WriteHeader(http.StatusOK)
+}
+
+func backgroundWorker() {
+	// Сразу при запуске не пуляем, ждем час
+	ticker := time.NewTicker(1 * time.Hour)
+	for range ticker.C {
+		settings := loadAutomationSettings()
+		if settings.SnapshotInterval != "none" {
+			performSnapshots(settings)
+		}
+		if settings.RecycleDays > 0 {
+			performRecycleCleanup(settings.RecycleDays)
+		}
+	}
+}
+
+func performSnapshots(settings AutomationSettings) {
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+	cfg, _ := ini.Load(path)
+
+	for _, section := range cfg.Sections() {
+		vfs := section.Key("vfs objects").String()
+		if !strings.Contains(vfs, "shadow_copy2") {
+			continue
+		}
+
+		sharePath := section.Key("path").String()
+		if sharePath == "" || runtime.GOOS != "linux" {
+			continue
+		}
+
+		snapDir := filepath.Join(sharePath, ".snapshots")
+		os.MkdirAll(snapDir, 0755)
+
+		// Формат GMT для Windows
+		timestamp := time.Now().UTC().Format("@GMT-2006.01.02-15.04.05")
+		dest := filepath.Join(snapDir, timestamp)
+
+		// Команда cp -al для создания снимка через хардлинки
+		// Исключаем саму папку .snapshots
+		cmd := exec.Command("sh", "-c", fmt.Sprintf("cp -al %s %s && rm -rf %s/.snapshots", sharePath, dest, dest))
+		cmd.Run()
+
+		// Ротация снимков
+		files, _ := os.ReadDir(snapDir)
+		if len(files) > settings.SnapshotKeep {
+			var oldest os.DirEntry
+			for _, f := range files {
+				if oldest == nil || f.Name() < oldest.Name() {
+					oldest = f
+				}
+			}
+			if oldest != nil {
+				os.RemoveAll(filepath.Join(snapDir, oldest.Name()))
+			}
+		}
+	}
+}
+
+func performRecycleCleanup(days int) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+	cfg, _ := ini.Load(path)
+
+	for _, section := range cfg.Sections() {
+		vfs := section.Key("vfs objects").String()
+		if !strings.Contains(vfs, "recycle") {
+			continue
+		}
+
+		sharePath := section.Key("path").String()
+		if sharePath == "" {
+			continue
+		}
+
+		repo := section.Key("recycle:repository").String()
+		if repo == "" {
+			repo = ".recycle"
+		}
+		repoBase := strings.Split(repo, "/")[0]
+		fullPath := filepath.Join(sharePath, repoBase)
+
+		// Удаляем файлы старше N дней
+		exec.Command("find", fullPath, "-type", "f", "-mtime", fmt.Sprintf("+%d", days), "-delete").Run()
+		// Удаляем пустые папки
+		exec.Command("find", fullPath, "-type", "d", "-empty", "-delete").Run()
+	}
 }
