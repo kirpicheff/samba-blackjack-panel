@@ -1,5 +1,6 @@
 let i18n_data = {};
 let currentLang = localStorage.getItem('panel_lang') || 'ru';
+let currentFMPath = '/';
 
 async function loadLanguage(lang) {
     if (i18n_data[lang]) return;
@@ -51,6 +52,9 @@ function updateStaticTranslations() {
         const key = el.getAttribute('data-i18n-placeholder');
         el.placeholder = i18n(key);
     });
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
 async function initI18n() {
@@ -102,6 +106,7 @@ function showTab(tabName, element) {
     if (tabName === 'logs') loadLogs();
     if (tabName === 'audit') loadAuditLogs();
     if (tabName === 'automation') loadAutomationSettings();
+    if (tabName === 'files') loadFileManager();
 }
 
 async function updateStatus() {
@@ -1322,6 +1327,152 @@ async function deletePanelAdmin(username) {
     if (!confirm(i18n('confirm_delete_admin', { username }))) return;
     const res = await fetch(`/api/panel/admins/delete?username=${username}`, { method: 'DELETE' });
     if (res.ok) loadPanelAdmins();
+}
+
+async function loadFileManager(path = null) {
+    if (path !== null) currentFMPath = path;
+    const container = document.getElementById('fm-table-body');
+    const pathEl = document.getElementById('fm-current-path');
+    if (!container || !pathEl) return;
+
+    // Рендерим хлебные крошки
+    pathEl.innerHTML = '';
+    const parts = currentFMPath.split('/').filter(p => p);
+    
+    // Корень
+    const rootSpan = document.createElement('span');
+    rootSpan.innerHTML = '<i data-lucide="hard-drive" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> /';
+    rootSpan.className = 'breadcrumb-item';
+    rootSpan.onclick = () => loadFileManager('/');
+    pathEl.appendChild(rootSpan);
+
+    let accumulatedPath = '';
+    parts.forEach((part, index) => {
+        accumulatedPath += '/' + part;
+        const sep = document.createElement('span');
+        sep.innerText = ' › ';
+        sep.style.opacity = '0.4';
+        sep.style.margin = '0 4px';
+        pathEl.appendChild(sep);
+
+        const partSpan = document.createElement('span');
+        partSpan.innerText = part;
+        partSpan.className = 'breadcrumb-item';
+        if (index === parts.length - 1) {
+            partSpan.classList.add('active');
+        } else {
+            const targetPath = accumulatedPath;
+            partSpan.onclick = () => loadFileManager(targetPath);
+        }
+        pathEl.appendChild(partSpan);
+    });
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const res = await fetch(`/api/files/list?path=${encodeURIComponent(currentFMPath)}`);
+        if (!res.ok) throw new Error(await res.text());
+        const files = await res.json();
+
+        container.innerHTML = '';
+        if (!files || files.length === 0) {
+            container.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-secondary); opacity: 0.5;">${i18n('fs_acl_empty') || 'No files found'}</td></tr>`;
+            return;
+        }
+
+        files.forEach(f => {
+            const icon = f.is_dir ? 'folder' : 'file';
+            const size = f.is_dir ? '-' : formatBytes(f.size);
+            const fullPath = (currentFMPath === '/' ? '' : currentFMPath) + '/' + f.name;
+            const nameClick = f.is_dir ? `onclick="loadFileManager('${fullPath.replace(/\\/g, '/')}')"` : '';
+            
+            container.innerHTML += `
+                <tr>
+                    <td ${nameClick} style="${f.is_dir ? 'cursor:pointer; color: var(--accent-blue); font-weight:600;' : ''}">
+                        <i data-lucide="${icon}" style="width:16px; vertical-align: middle; margin-right: 8px; opacity: 0.7;"></i>
+                        ${f.name}
+                    </td>
+                    <td class="mono" style="font-size: 0.8rem;">${size}</td>
+                    <td class="mono" style="font-size: 0.8rem; color: var(--text-secondary);">${f.mod_time}</td>
+                    <td>
+                        <button class="btn-action btn-outline" onclick="fmRename('${f.name}')"><i data-lucide="edit-3" style="width:14px"></i></button>
+                        <button class="btn-action btn-outline" onclick="openPathPermissionsFM('${f.name}')" title="${i18n('modal_tab_permissions')}"><i data-lucide="shield" style="width:14px"></i></button>
+                        <button class="btn-action btn-outline" style="color: #ef4444;" onclick="fmDelete('${f.name}')"><i data-lucide="trash-2" style="width:14px"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+        if (window.lucide) lucide.createIcons();
+    } catch (e) {
+        container.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 2rem; color: #ef4444;">${i18n('fm_error_load')}: ${e.message}</td></tr>`;
+    }
+}
+
+function fmGoUp() {
+    if (currentFMPath === '/' || currentFMPath === '') return;
+    const parts = currentFMPath.split('/').filter(p => p);
+    parts.pop();
+    currentFMPath = '/' + parts.join('/');
+    if (currentFMPath === '') currentFMPath = '/';
+    loadFileManager();
+}
+
+async function fmNewFolder() {
+    const name = prompt(i18n('fm_new_folder_prompt'));
+    if (!name) return;
+
+    try {
+        const res = await fetch('/api/files/mkdir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: currentFMPath, name })
+        });
+        if (res.ok) loadFileManager();
+        else alert(i18n('fm_error_mkdir') + ': ' + await res.text());
+    } catch (e) { console.error(e); }
+}
+
+async function fmRename(oldName) {
+    const newName = prompt(i18n('fm_rename_prompt', { name: oldName }), oldName);
+    if (!newName || newName === oldName) return;
+
+    try {
+        const res = await fetch('/api/files/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: currentFMPath, old_name: oldName, new_name: newName })
+        });
+        if (res.ok) loadFileManager();
+        else alert(i18n('fm_error_rename') + ': ' + await res.text());
+    } catch (e) { console.error(e); }
+}
+
+async function fmDelete(name) {
+    if (!confirm(i18n('fm_delete_confirm', { name }))) return;
+
+    try {
+        const res = await fetch('/api/files/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: currentFMPath, name })
+        });
+        if (res.ok) loadFileManager();
+        else alert(i18n('fm_error_delete') + ': ' + await res.text());
+    } catch (e) { console.error(e); }
+}
+
+function openPathPermissionsFM(name) {
+    const fullPath = (currentFMPath.endsWith('/') ? currentFMPath : currentFMPath + '/') + name;
+    openShareModal({ name: name, path: fullPath, params: {} });
+    showModalTab('permissions');
+}
+
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
 initI18n();

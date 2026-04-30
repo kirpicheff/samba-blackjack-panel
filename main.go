@@ -56,6 +56,11 @@ func main() {
 	http.HandleFunc("/api/panel/admins/delete", authMiddleware(deleteAdminHandler))
 	http.HandleFunc("/api/panel/admins/password", authMiddleware(changePasswordHandler))
 
+	http.HandleFunc("/api/files/list", authMiddleware(listContentHandler))
+	http.HandleFunc("/api/files/mkdir", authMiddleware(createFolderHandler))
+	http.HandleFunc("/api/files/rename", authMiddleware(renameFileHandler))
+	http.HandleFunc("/api/files/delete", authMiddleware(deleteFileHandler))
+
 	fs := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fs)
 

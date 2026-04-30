@@ -28,6 +28,9 @@
             <div class="nav-item" onclick="showTab('shares', this)" data-i18n="nav_shares">
                 <i data-lucide="folder-tree"></i> Общие ресурсы
             </div>
+            <div class="nav-item" onclick="showTab('files', this)" data-i18n="nav_files">
+                <i data-lucide="folder-open"></i> Файловый менеджер
+            </div>
             <div class="nav-item" onclick="showTab('users', this)" data-i18n="nav_users">
                 <i data-lucide="users"></i> Пользователи
             </div>
@@ -58,8 +61,11 @@
                 <button class="btn-action btn-outline lang-btn" onclick="setLanguage('es')" style="flex: 1; padding: 4px; height: 28px; font-size: 0.7rem; color: #fff; background: transparent; border: none; cursor: pointer; border-radius: 8px;">ES</button>
             </div>
         </nav>
-        <div style="padding: 0 1.5rem 1.5rem 1.5rem; font-size: 0.75rem; color: #64748b; font-weight: 500;" data-i18n="label_version">
-            v1.2.0 Premium
+        <div style="padding: 0 1.5rem 1.5rem 1.5rem; font-size: 0.75rem; color: #64748b; font-weight: 500;">
+            <a href="https://github.com/kirpicheff/samba-blackjack-panel" target="_blank" style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                <span data-i18n="label_version">Open Source</span>
+            </a>
         </div>
     </aside>
 
@@ -158,6 +164,36 @@
                             </tr>
                         </thead>
                         <tbody id="shares-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка Файловый Менеджер -->
+        <div id="tab-files" class="tab-content" style="display:none;">
+            <div class="content-panel">
+                <div class="panel-header">
+                    <h2 id="fm-title"><i data-lucide="folder-open" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> <span data-i18n="fm_title">Файловый менеджер</span></h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-action btn-outline" onclick="fmGoUp()"><i data-lucide="arrow-up"></i> <span data-i18n="btn_up">Вверх</span></button>
+                        <button class="btn-action btn-primary" onclick="fmNewFolder()"><i data-lucide="plus"></i> <span data-i18n="btn_new_folder">Новая папка</span></button>
+                    </div>
+                </div>
+                <div style="padding: 1rem 2rem; background: rgba(255, 255, 255, 0.4); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
+                    <i data-lucide="map-pin" style="width: 14px; color: var(--text-secondary);"></i>
+                    <div id="fm-current-path" style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">/</div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-i18n="table_name">Имя</th>
+                                <th data-i18n="table_size">Размер</th>
+                                <th data-i18n="table_date">Дата изменения</th>
+                                <th data-i18n="table_actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fm-table-body"></tbody>
                     </table>
                 </div>
             </div>
