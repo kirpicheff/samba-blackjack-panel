@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"gopkg.in/ini.v1"
 )
@@ -23,6 +24,10 @@ type SambaStatus struct {
 	Tcons     map[string]Tcon     `json:"tcons"`
 	OpenFiles map[string]OpenFile `json:"open_files"`
 }
+
+var sessions = make(map[string]time.Time)
+const adminPass = "admin" // Упрощенно для начала
+const sessionCookieName = "samba_session"
 
 type Session struct {
 	RemoteMachine string `json:"remote_machine"`
@@ -104,6 +109,76 @@ func getShares(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(shares)
 }
 
+// saveShare сохраняет или обновляет ресурс в smb.conf
+func saveShare(w http.ResponseWriter, r *http.Request) {
+	var share ShareInfo
+	if err := json.NewDecoder(r.Body).Decode(&share); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+
+	cfg, err := ini.Load(path)
+	if err != nil {
+		http.Error(w, "Failed to load smb.conf", 500)
+		return
+	}
+
+	cfg.DeleteSection(share.Name) // Пересоздаем для чистоты
+	section, _ := cfg.NewSection(share.Name)
+	section.Key("path").SetValue(share.Path)
+	if share.Comment != "" {
+		section.Key("comment").SetValue(share.Comment)
+	}
+
+	for k, v := range share.Params {
+		if k == "path" || k == "comment" || k == "vfs objects" {
+			continue
+		}
+		section.Key(k).SetValue(v)
+	}
+
+	if share.IsRecycle {
+		section.Key("vfs objects").SetValue("acl_xattr recycle")
+	} else {
+		section.Key("vfs objects").SetValue("acl_xattr")
+	}
+
+	if err := cfg.SaveTo(path); err != nil {
+		http.Error(w, "Failed to save smb.conf", 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// deleteShare удаляет секцию из smb.conf
+func deleteShare(w http.ResponseWriter, r *http.Request) {
+	var req struct{ Name string `json:"name"` }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+
+	cfg, err := ini.Load(path)
+	if err != nil {
+		http.Error(w, "Failed to load smb.conf", 500)
+		return
+	}
+
+	cfg.DeleteSection(req.Name)
+	cfg.SaveTo(path)
+	w.WriteHeader(http.StatusOK)
+}
+
 // getUsers возвращает список пользователей Samba через pdbedit -L
 func getUsers(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command("pdbedit", "-L")
@@ -139,6 +214,73 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// loginHandler проверяет пароль и выдает сессию
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+
+	var creds struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if creds.Password == adminPass {
+		token := "session-" + fmt.Sprint(time.Now().UnixNano())
+		sessions[token] = time.Now().Add(24 * time.Hour)
+		
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionCookieName,
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			Expires:  time.Now().Add(24 * time.Hour),
+		})
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.Error(w, "Unauthorized", 401)
+}
+
+// logoutHandler удаляет сессию
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err == nil {
+		delete(sessions, cookie.Value)
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:   sessionCookieName,
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
+	w.WriteHeader(http.StatusOK)
+}
+
+// authMiddleware проверяет наличие сессии
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie(sessionCookieName)
+		if err != nil {
+			http.Error(w, "Unauthorized", 401)
+			return
+		}
+
+		expiry, v := sessions[cookie.Value]
+		if !v || time.Now().After(expiry) {
+			http.Error(w, "Unauthorized", 401)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 func main() {
 	// Если мы на Windows, создадим тестовый конфиг для разработки
 	if _, err := os.Stat(smbConfPath); os.IsNotExist(err) {
@@ -149,9 +291,13 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/api/status", getSambaStatus)
-	http.HandleFunc("/api/shares", getShares)
-	http.HandleFunc("/api/users", getUsers)
+	http.HandleFunc("/api/login", loginHandler)
+	http.HandleFunc("/api/logout", logoutHandler)
+	http.HandleFunc("/api/shares/save", authMiddleware(saveShare))
+	http.HandleFunc("/api/shares/delete", authMiddleware(deleteShare))
+	http.HandleFunc("/api/status", authMiddleware(getSambaStatus))
+	http.HandleFunc("/api/shares", authMiddleware(getShares))
+	http.HandleFunc("/api/users", authMiddleware(getUsers))
 
 	fs := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fs)

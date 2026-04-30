@@ -12,6 +12,10 @@ function showTab(tabName, el) {
 async function updateStatus() {
     try {
         const response = await fetch('/api/status');
+        if (response.status === 401) {
+            window.location.href = '/login.html';
+            return;
+        }
         const data = await response.json();
 
         document.getElementById('session-count').innerText = Object.keys(data.sessions || {}).length;
@@ -30,6 +34,7 @@ async function updateStatus() {
 async function loadShares() {
     try {
         const response = await fetch('/api/shares');
+        if (response.status === 401) return;
         const data = await response.json();
         const table = document.getElementById('shares-table-body');
         table.innerHTML = '';
@@ -43,15 +48,77 @@ async function loadShares() {
                 <td><strong>${share.name}</strong></td>
                 <td><span class="mono">${share.path}</span></td>
                 <td>${recycleStatus}</td>
-                <td><button class="btn-action">Настроить</button></td>
+                <td>
+                    <button class="btn-action" onclick='openShareModal(${JSON.stringify(share)})'>Настроить</button>
+                    <button class="btn-action" style="color: #dc2626;" onclick="deleteShare('${share.name}')">Удалить</button>
+                </td>
             </tr>`;
         });
     } catch (e) { console.error(e); }
 }
 
+function openShareModal(share = null) {
+    const modal = document.getElementById('share-modal');
+    document.getElementById('modal-title').innerText = share ? 'Настройка ресурса' : 'Новый ресурс';
+    
+    document.getElementById('share-name').value = share ? share.name : '';
+    document.getElementById('share-name').readOnly = !!share;
+    document.getElementById('share-path').value = share ? share.path : '';
+    document.getElementById('share-comment').value = share ? (share.params.comment || '') : '';
+    document.getElementById('share-recycle').checked = share ? share.is_recycle : false;
+    document.getElementById('share-readonly').checked = share ? (share.params['read only'] !== 'no') : true;
+
+    modal.style.display = 'block';
+}
+
+function closeShareModal() {
+    document.getElementById('share-modal').style.display = 'none';
+}
+
+document.getElementById('share-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const share = {
+        name: document.getElementById('share-name').value,
+        path: document.getElementById('share-path').value,
+        comment: document.getElementById('share-comment').value,
+        is_recycle: document.getElementById('share-recycle').checked,
+        params: {
+            'read only': document.getElementById('share-readonly').checked ? 'yes' : 'no',
+            'guest ok': 'yes',
+            'browseable': 'yes'
+        }
+    };
+
+    const res = await fetch('/api/shares/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(share)
+    });
+
+    if (res.ok) {
+        closeShareModal();
+        loadShares();
+    } else {
+        alert('Ошибка при сохранении ресурса');
+    }
+};
+
+async function deleteShare(name) {
+    if (!confirm(`Вы уверены, что хотите удалить ресурс "${name}"?`)) return;
+    
+    const res = await fetch('/api/shares/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+
+    if (res.ok) loadShares();
+}
+
 async function loadUsers() {
     try {
         const response = await fetch('/api/users');
+        if (response.status === 401) return;
         const data = await response.json();
         const table = document.getElementById('users-table-body');
         table.innerHTML = '';
@@ -68,6 +135,11 @@ async function loadUsers() {
             </tr>`;
         });
     } catch (e) { console.error(e); }
+}
+
+async function logout() {
+    await fetch('/api/logout');
+    window.location.href = '/login.html';
 }
 
 const style = document.createElement('style');

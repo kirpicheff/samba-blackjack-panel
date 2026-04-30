@@ -18,6 +18,7 @@
             <div class="nav-item active" onclick="showTab('dashboard', this)">Дашборд</div>
             <div class="nav-item" onclick="showTab('shares', this)">Общие ресурсы</div>
             <div class="nav-item" onclick="showTab('users', this)">Пользователи</div>
+            <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid #e2e8f0; margin-top: 2rem; padding-top: 1.5rem;">Выход</div>
         </nav>
         <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569;">
             Версия 1.1.0-stable
@@ -58,7 +59,10 @@
 
         <!-- Вкладка Ресурсы -->
         <div id="tab-shares" class="tab-content" style="display:none;">
-            <header><h1>Управление ресурсами</h1></header>
+            <header>
+                <h1>Управление ресурсами</h1>
+                <button class="btn-action" style="background: #2563eb; color: white; border: none;" onclick="openShareModal()">+ Добавить ресурс</button>
+            </header>
             <div class="content-panel">
                 <div class="panel-header"><h2>Список общих папок</h2></div>
                 <table>
@@ -82,6 +86,42 @@
             </div>
         </div>
     </main>
+
+    <!-- Модальное окно ресурса -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <div class="panel-header">
+                <h2 id="modal-title">Новый ресурс</h2>
+                <span class="close" onclick="closeShareModal()">&times;</span>
+            </div>
+            <form id="share-form" style="padding: 1.5rem;">
+                <div class="form-group">
+                    <label>Имя ресурса (в smb.conf)</label>
+                    <input type="text" id="share-name" placeholder="Например: Public" required>
+                </div>
+                <div class="form-group">
+                    <label>Путь к папке</label>
+                    <input type="text" id="share-path" placeholder="/srv/samba/public" required>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий</label>
+                    <input type="text" id="share-comment" placeholder="Публичная папка">
+                </div>
+                <div style="display: flex; gap: 2rem; margin-top: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="share-recycle"> Корзина (vfs recycle)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="share-readonly" checked> Только чтение
+                    </label>
+                </div>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn-action" onclick="closeShareModal()">Отмена</button>
+                    <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
