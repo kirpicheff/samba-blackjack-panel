@@ -424,31 +424,31 @@ tr:hover td {
 
 /* Apply Button Special Style */
 .btn-apply-special {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
     border: none;
     height: 34px !important;
-    padding: 0 1rem !important;
-    font-size: 0.8rem !important;
+    line-height: 34px !important;
+    padding: 0 1.25rem !important;
+    font-size: 0.85rem !important;
     font-weight: 700;
-    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
-    animation: pulseIndigo 2s infinite;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    animation: pulseBlue 2s infinite;
+    display: inline-block !important;
+    text-align: center;
+    border-radius: 12px;
 }
 
-.btn-apply-special i {
-    width: 16px !important;
-    height: 16px !important;
+@keyframes pulseBlue {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
 
-@keyframes pulseIndigo {
-    0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-}
 
 .btn-apply-special:hover {
-    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     transform: translateY(-2px) scale(1.02);
 }
 
