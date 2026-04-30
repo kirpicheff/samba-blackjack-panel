@@ -245,16 +245,17 @@ tr:hover td {
     color: var(--text-secondary);
 }
 
-.form-group input {
+.form-group input, .form-group select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 0.9rem;
     transition: border-color 0.2s;
+    background-color: white;
 }
 
-.form-group input:focus {
+.form-group input:focus, .form-group select:focus {
     outline: none;
     border-color: var(--accent-blue);
 }

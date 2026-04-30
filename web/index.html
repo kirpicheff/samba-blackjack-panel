@@ -89,41 +89,93 @@
 
         <!-- Вкладка Глобальные настройки -->
         <div id="tab-global" class="tab-content" style="display:none;">
-            <header><h1>Глобальные настройки Samba</h1></header>
-            <div class="content-panel">
-                <div class="panel-header"><h2>Секция [global]</h2></div>
-                <form id="global-form" style="padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                    <div>
-                        <h3>Идентификация</h3>
-                        <div class="form-group">
-                            <label>Server String</label>
-                            <input type="text" name="server string">
-                        </div>
-                        <div class="form-group">
-                            <label>Workgroup</label>
-                            <input type="text" name="workgroup">
-                        </div>
-                        <div class="form-group">
-                            <label>Security</label>
-                            <input type="text" name="security">
-                        </div>
-                    </div>
-                    <div>
-                        <h3>Протоколы и Сеть</h3>
-                        <div class="form-group">
-                            <label>Min Protocol</label>
-                            <input type="text" name="server min protocol">
-                        </div>
-                        <div class="form-group">
-                            <label>Max Protocol</label>
-                            <input type="text" name="server max protocol">
+            <header>
+                <h1>Настройки сервера Samba</h1>
+                <button type="submit" form="global-form" class="btn-action" style="background: #10b981; color: white; border: none;">Сохранить все настройки</button>
+            </header>
+            <form id="global-form">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+                    <!-- Базовые и Сеть -->
+                    <div class="content-panel">
+                        <div class="panel-header"><h2>Сеть и Идентификация</h2></div>
+                        <div style="padding: 1.5rem;">
+                            <div class="form-group"><label>Workgroup</label><input type="text" name="workgroup"></div>
+                            <div class="form-group"><label>Netbios Name</label><input type="text" name="netbios name"></div>
+                            <div class="form-group"><label>Server String</label><input type="text" name="server string"></div>
+                            <div class="form-group"><label>Interfaces</label><input type="text" name="interfaces" placeholder="lo eth0"></div>
+                            <div class="form-group"><label>Bind Interfaces Only</label>
+                                <select name="bind interfaces only"><option value="yes">Yes</option><option value="no">No</option></select>
+                            </div>
                         </div>
                     </div>
-                    <div style="grid-column: span 2; display: flex; justify-content: flex-end;">
-                        <button type="submit" class="btn-action" style="background: #10b981; color: white; border: none;">Применить глобальные настройки</button>
+
+                    <!-- Безопасность -->
+                    <div class="content-panel">
+                        <div class="panel-header"><h2>Безопасность</h2></div>
+                        <div style="padding: 1.5rem;">
+                            <div class="form-group"><label>Security Mode</label>
+                                <select name="security"><option value="user">User</option><option value="ads">ADS (Active Directory)</option><option value="domain">Domain</option></select>
+                            </div>
+                            <div class="form-group"><label>Map to Guest</label>
+                                <select name="map to guest"><option value="Never">Never</option><option value="Bad User">Bad User</option></select>
+                            </div>
+                            <div class="form-group"><label>Guest Account</label><input type="text" name="guest account" placeholder="nobody"></div>
+                            <div class="form-group"><label>Hosts Allow (Белый список IP)</label><input type="text" name="hosts allow" placeholder="192.168.1. 127."></div>
+                        </div>
                     </div>
-                </form>
-            </div>
+
+                    <!-- Производительность -->
+                    <div class="content-panel">
+                        <div class="panel-header"><h2>Производительность и AIO</h2></div>
+                        <div style="padding: 1.5rem;">
+                            <div class="form-group"><label>Use Sendfile</label>
+                                <select name="use sendfile"><option value="yes">Yes</option><option value="no">No</option></select>
+                            </div>
+                            <div class="form-group"><label>AIO Read Size</label><input type="text" name="aio read size" placeholder="1"></div>
+                            <div class="form-group"><label>AIO Write Size</label><input type="text" name="aio write size" placeholder="1"></div>
+                            <div class="form-group"><label>Socket Options</label><input type="text" name="socket options" placeholder="TCP_NODELAY"></div>
+                        </div>
+                    </div>
+
+                    <!-- Совместимость -->
+                    <div class="content-panel">
+                        <div class="panel-header"><h2>Совместимость и Протоколы</h2></div>
+                        <div style="padding: 1.5rem;">
+                            <div class="form-group"><label>Min Protocol</label>
+                                <select name="server min protocol"><option value="SMB2_10">SMB2_10</option><option value="SMB2">SMB2</option><option value="NT1">NT1</option></select>
+                            </div>
+                            <div class="form-group"><label>Max Protocol</label>
+                                <select name="server max protocol"><option value="SMB3_11">SMB3_11</option><option value="SMB3">SMB3</option></select>
+                            </div>
+                            <div class="form-group"><label>Unix Charset</label><input type="text" name="unix charset" value="UTF-8"></div>
+                            <div class="form-group"><label>Dos Charset</label><input type="text" name="dos charset" value="CP866"></div>
+                        </div>
+                    </div>
+
+                    <!-- Active Directory -->
+                    <div class="content-panel">
+                        <div class="panel-header"><h2>Active Directory / Domain</h2></div>
+                        <div style="padding: 1.5rem;">
+                            <div class="form-group"><label>Realm (Domain Name)</label><input type="text" name="realm" placeholder="EXAMPLE.COM"></div>
+                            <div class="form-group"><label>Kerberos Method</label><input type="text" name="kerberos method" placeholder="secrets and keytab"></div>
+                            <div class="form-group"><label>Winbind Enum Users</label>
+                                <select name="winbind enum users"><option value="yes">Yes</option><option value="no">No</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Логирование -->
+                    <div class="content-panel">
+                        <div class="panel-header"><h2>Логи и Отладка</h2></div>
+                        <div style="padding: 1.5rem;">
+                            <div class="form-group"><label>Log Level</label>
+                                <select name="log level"><option value="1">1 (Стандарт)</option><option value="2">2</option><option value="3">3 (Debug)</option></select>
+                            </div>
+                            <div class="form-group"><label>Max Log Size (KB)</label><input type="number" name="max log size" value="1000"></div>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </main>
 
