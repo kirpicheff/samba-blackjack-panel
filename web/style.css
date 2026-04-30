@@ -276,10 +276,11 @@ th {
 
 td {
     padding: 1.25rem 1.5rem;
-    background: rgba(255, 255, 255, 0.3);
+    background: #ffffff; /* Solid white to prevent background bleed-through */
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     font-size: 0.9375rem;
+    transition: background 0.2s, border-color 0.2s;
 }
 
 td:first-child {
@@ -295,16 +296,20 @@ td:last-child {
 }
 
 tr:hover td {
-    background: rgba(255, 255, 255, 0.6);
+    background: #f0f7ff !important;
+    border-color: #d0e1fd;
 }
 
 .mono {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
     color: var(--accent-blue);
+}
+
+.mono-tag {
     background: rgba(59, 130, 246, 0.1);
     padding: 0.2rem 0.5rem;
     border-radius: 6px;
+    font-size: 0.85rem;
 }
 
 /* File Manager Specific */

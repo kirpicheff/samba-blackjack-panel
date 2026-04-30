@@ -283,8 +283,42 @@ function showModalTab(tabId) {
         const el = document.getElementById('m-tab-permissions'); 
         if(el) el.style.display = 'block';
         const path = document.getElementById('share-path').value;
-        if (path) loadPathPermissions(path);
+        if (path) {
+            fillUserGroupSelects().then(() => loadPathPermissions(path));
+        }
     }
+}
+
+async function fillUserGroupSelects() {
+    try {
+        const [uRes, gRes] = await Promise.all([
+            fetch('/api/users'),
+            fetch('/api/groups')
+        ]);
+        const users = await uRes.json();
+        const groups = await gRes.json();
+
+        const uSelect = document.getElementById('fs-owner');
+        const gSelect = document.getElementById('fs-group');
+        if (!uSelect || !gSelect) return;
+
+        uSelect.innerHTML = '';
+        gSelect.innerHTML = '';
+
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.username;
+            opt.innerText = u.username;
+            uSelect.appendChild(opt);
+        });
+
+        groups.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.name;
+            opt.innerText = g.name;
+            gSelect.appendChild(opt);
+        });
+    } catch (e) { console.error(e); }
 }
 
 async function loadPathPermissions(path) {
@@ -296,10 +330,25 @@ async function loadPathPermissions(path) {
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         
-        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-        setVal('fs-owner', data.owner);
-        setVal('fs-group', data.group);
-        setVal('fs-mode', data.mode);
+        const setSelectVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            // Проверяем, есть ли такое значение в списке, если нет - добавляем (для системных юзеров типа root)
+            let exists = Array.from(el.options).some(opt => opt.value === val);
+            if (!exists && val) {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.innerText = val;
+                el.appendChild(opt);
+            }
+            el.value = val;
+        };
+
+        setSelectVal('fs-owner', data.owner);
+        setSelectVal('fs-group', data.group);
+        
+        const modeEl = document.getElementById('fs-mode');
+        if (modeEl) modeEl.value = data.mode;
         updatePermChecks(data.mode);
         
         if (aclOutput) aclOutput.innerText = data.acls || i18n('fs_acl_empty');
