@@ -79,25 +79,30 @@
     <div class="login-card">
         <div class="logo">SAMBA<span>ADMIN</span></div>
         <h1>Добро пожаловать</h1>
-        <p>Введите пароль администратора</p>
+        <p>Введите данные администратора</p>
         <form id="login-form">
-            <input type="password" id="password" placeholder="Пароль" required autofocus>
+            <input type="text" id="username" placeholder="Логин" required autofocus>
+            <input type="password" id="password" placeholder="Пароль" required>
             <button type="submit">Войти в панель</button>
         </form>
-        <div id="error-msg" class="error">Неверный пароль. Попробуйте снова.</div>
+        <div id="error-msg" class="error">Неверный логин или пароль.</div>
     </div>
 
     <script>
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
+                body: JSON.stringify({ username, password })
             });
 
             if (res.ok) {
+                const data = await res.json();
+                localStorage.setItem('panel_user', data.user);
+                localStorage.setItem('panel_role', data.role);
                 window.location.href = '/';
             } else {
                 document.getElementById('error-msg').style.display = 'block';

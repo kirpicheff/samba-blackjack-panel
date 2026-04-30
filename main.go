@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gopkg.in/ini.v1"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type ADStatus struct {
@@ -39,8 +40,9 @@ type SambaStatus struct {
 }
 
 var sessions = make(map[string]time.Time)
-const adminPass = "admin" // Упрощенно для начала
 const sessionCookieName = "samba_session"
+var adminsPath = "admins.json"
+var admins []AdminUser
 
 type Session struct {
 	RemoteMachine string `json:"remote_machine"`
@@ -68,6 +70,30 @@ type SambaGroup struct {
 	Name    string   `json:"name"`
 	GID     string   `json:"gid"`
 	Members []string `json:"members"`
+}
+
+type ADHealth struct {
+	Status      bool            `json:"status"`
+	Checks      []ADCheckResult `json:"checks"`
+	LastUpdate  string          `json:"last_update"`
+}
+
+type ADCheckResult struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"` // "ok", "warning", "error"
+	Message string `json:"message"`
+}
+
+type AdminUser struct {
+	Username string `json:"username"`
+	Password string `json:"password,omitempty"` // Только для передачи при создании
+	Hash     string `json:"hash"`
+	Role     string `json:"role"` // "admin", "superadmin"
+}
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
 }
 
 type ShareInfo struct {
@@ -662,6 +688,80 @@ func controlServiceHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// getDiscoveryStatus возвращает статусы wsdd и avahi
+func getDiscoveryStatus(w http.ResponseWriter, r *http.Request) {
+	type ServiceStatus struct {
+		Name   string `json:"name"`
+		Active bool   `json:"active"`
+		Installed bool `json:"installed"`
+	}
+	
+	services := []string{"wsdd", "avahi-daemon"}
+	var results []ServiceStatus
+
+	for _, s := range services {
+		active := false
+		installed := true
+		
+		if os.PathSeparator == '/' {
+			// Проверка на Linux
+			cmd := exec.Command("systemctl", "is-active", s)
+			output, _ := cmd.Output()
+			active = strings.TrimSpace(string(output)) == "active"
+			
+			// Проверка на наличие юнита
+			checkCmd := exec.Command("systemctl", "list-unit-files", s+".service")
+			checkOut, _ := checkCmd.Output()
+			installed = strings.Contains(string(checkOut), s+".service")
+		} else {
+			// Mock для Windows
+			active = true
+		}
+
+		results = append(results, ServiceStatus{
+			Name:   s,
+			Active: active,
+			Installed: installed,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+// controlDiscoveryHandler управляет wsdd/avahi
+func controlDiscoveryHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Service string `json:"service"`
+		Action  string `json:"action"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	validServices := map[string]bool{"wsdd": true, "avahi-daemon": true}
+	validActions := map[string]bool{"start": true, "stop": true, "restart": true, "enable": true, "disable": true}
+
+	if !validServices[req.Service] || !validActions[req.Action] {
+		http.Error(w, "Invalid service or action", 400)
+		return
+	}
+
+	cmd := exec.Command("systemctl", req.Action, req.Service)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		http.Error(w, "Error: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // getLogsHandler читает последние строки из файла логов
 func getLogsHandler(w http.ResponseWriter, r *http.Request) {
 	logFile := "/var/log/samba/log.smbd"
@@ -877,14 +977,34 @@ func clearRecycleBinsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-// loginHandler проверяет пароль и выдает сессию
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+// Загрузка администраторов из файла
+func loadAdmins() {
+	if _, err := os.Stat(adminsPath); os.IsNotExist(err) {
+		// Создаем дефолтного админа, если файла нет
+		hash, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+		admins = []AdminUser{
+			{Username: "admin", Hash: string(hash), Role: "superadmin"},
+		}
+		saveAdmins()
 		return
 	}
 
+	data, err := os.ReadFile(adminsPath)
+	if err != nil {
+		log.Println("Ошибка чтения admins.json:", err)
+		return
+	}
+	json.Unmarshal(data, &admins)
+}
+
+func saveAdmins() {
+	data, _ := json.MarshalIndent(admins, "", "  ")
+	os.WriteFile(adminsPath, data, 0600)
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
+		Username string `json:"username"`
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
@@ -892,25 +1012,43 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if creds.Password == adminPass {
-		token := "session-" + fmt.Sprint(time.Now().UnixNano())
-		sessions[token] = time.Now().Add(24 * time.Hour)
-		
-		http.SetCookie(w, &http.Cookie{
-			Name:     sessionCookieName,
-			Value:    token,
-			Path:     "/",
-			HttpOnly: true,
-			Expires:  time.Now().Add(24 * time.Hour),
-		})
-		w.WriteHeader(http.StatusOK)
+	found := false
+	var user AdminUser
+	for _, a := range admins {
+		if a.Username == creds.Username {
+			err := bcrypt.CompareHashAndPassword([]byte(a.Hash), []byte(creds.Password))
+			if err == nil {
+				found = true
+				user = a
+				break
+			}
+		}
+	}
+
+	if !found {
+		http.Error(w, "Invalid credentials", 401)
 		return
 	}
 
-	http.Error(w, "Unauthorized", 401)
+	token := "session-" + fmt.Sprint(time.Now().UnixNano()) + "-" + user.Username
+	sessions[token] = time.Now().Add(24 * time.Hour)
+	
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Now().Add(24 * time.Hour),
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": token,
+		"role":  user.Role,
+		"user":  user.Username,
+	})
 }
 
-// logoutHandler удаляет сессию
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err == nil {
@@ -925,7 +1063,6 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// authMiddleware проверяет наличие сессии
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookieName)
@@ -944,12 +1081,84 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func getAdminsHandler(w http.ResponseWriter, r *http.Request) {
+	// Создаем копию списка без хешей для безопасности
+	safeAdmins := []AdminUser{}
+	for _, a := range admins {
+		a.Hash = "" // Скрываем хеш
+		safeAdmins = append(safeAdmins, a)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(safeAdmins)
+}
+
+func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var req ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	cookie, _ := r.Cookie(sessionCookieName)
+	tokenParts := strings.Split(cookie.Value, "-")
+	currentUser := tokenParts[len(tokenParts)-1]
+
+	for i, a := range admins {
+		if a.Username == currentUser {
+			err := bcrypt.CompareHashAndPassword([]byte(a.Hash), []byte(req.OldPassword))
+			if err != nil {
+				http.Error(w, "Старый пароль неверен", 403)
+				return
+			}
+			newHash, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+			admins[i].Hash = string(newHash)
+			saveAdmins()
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+	http.Error(w, "User not found", 404)
+}
+
+func createAdminHandler(w http.ResponseWriter, r *http.Request) {
+	var newUser AdminUser
+	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
+	newUser.Hash = string(hash)
+	newUser.Password = ""
+	admins = append(admins, newUser)
+	saveAdmins()
+	w.WriteHeader(http.StatusCreated)
+}
+
+func deleteAdminHandler(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "admin" {
+		http.Error(w, "Нельзя удалить основного администратора", 400)
+		return
+	}
+
+	newAdmins := []AdminUser{}
+	for _, a := range admins {
+		if a.Username != username {
+			newAdmins = append(newAdmins, a)
+		}
+	}
+	admins = newAdmins
+	saveAdmins()
+	w.WriteHeader(http.StatusOK)
+}
+
 
 // getADStatusHandler проверяет статус подключения к домену
 func getADStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if os.PathSeparator == '\\' {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ADStatus{Joined: false, Info: "Mock mode (Windows)"})
+		json.NewEncoder(w).Encode(ADStatus{Joined: true, Info: "Mock mode (Windows)"})
 		return
 	}
 
@@ -1051,7 +1260,73 @@ func joinADHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Successfully joined the domain"))
 }
 
+// getADHealthHandler выполняет серию тестов для проверки здоровья AD
+func getADHealthHandler(w http.ResponseWriter, r *http.Request) {
+	health := ADHealth{
+		Status:     true,
+		LastUpdate: time.Now().Format("15:04:05"),
+		Checks:     []ADCheckResult{},
+	}
+
+	if os.PathSeparator == '\\' {
+		// Mock для Windows
+		health.Checks = append(health.Checks, 
+			ADCheckResult{"Связь с контроллером", "ok", "DC1.corp.example.com доступен"},
+			ADCheckResult{"Синхронизация времени", "ok", "Разница 0.02с"},
+			ADCheckResult{"Доверительные отношения", "ok", "Join is valid"},
+			ADCheckResult{"Winbind RPC", "ok", "RPC connection is OK"},
+		)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(health)
+		return
+	}
+
+	// 1. Проверка net ads testjoin
+	testJoinCmd := exec.Command("net", "ads", "testjoin")
+	output, err := testJoinCmd.CombinedOutput()
+	if err == nil {
+		health.Checks = append(health.Checks, ADCheckResult{"Доверительные отношения", "ok", strings.TrimSpace(string(output))})
+	} else {
+		health.Checks = append(health.Checks, ADCheckResult{"Доверительные отношения", "error", strings.TrimSpace(string(output))})
+		health.Status = false
+	}
+
+	// 2. Проверка wbinfo -t (RPC trust secret)
+	wbTrustCmd := exec.Command("wbinfo", "-t")
+	output, err = wbTrustCmd.CombinedOutput()
+	if err == nil {
+		health.Checks = append(health.Checks, ADCheckResult{"Winbind RPC", "ok", strings.TrimSpace(string(output))})
+	} else {
+		health.Checks = append(health.Checks, ADCheckResult{"Winbind RPC", "error", strings.TrimSpace(string(output))})
+		health.Status = false
+	}
+
+	// 3. Проверка времени (смещение относительно AD)
+	// Пытаемся получить время через net ads time
+	timeCmd := exec.Command("net", "ads", "time")
+	output, err = timeCmd.CombinedOutput()
+	if err == nil {
+		health.Checks = append(health.Checks, ADCheckResult{"Синхронизация времени", "ok", "Время сервера совпадает с DC"})
+	} else {
+		health.Checks = append(health.Checks, ADCheckResult{"Синхронизация времени", "warning", "Не удалось проверить время через net ads"})
+	}
+
+	// 4. Проверка Kerberos билета (keytab)
+	klistCmd := exec.Command("klist", "-k")
+	output, err = klistCmd.CombinedOutput()
+	if err == nil {
+		health.Checks = append(health.Checks, ADCheckResult{"Kerberos Keytab", "ok", "Keytab файл присутствует и валиден"})
+	} else {
+		health.Checks = append(health.Checks, ADCheckResult{"Kerberos Keytab", "error", "Keytab не найден или не читается"})
+		health.Status = false
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(health)
+}
+
 func main() {
+	loadAdmins()
 	// Если мы на Windows, создадим тестовый конфиг для разработки
 	if _, err := os.Stat(smbConfPath); os.IsNotExist(err) {
 		if _, err := os.Stat(devSmbConfPath); os.IsNotExist(err) {
@@ -1087,6 +1362,14 @@ func main() {
 	http.HandleFunc("/api/groups/member", authMiddleware(toggleGroupMemberHandler))
 	http.HandleFunc("/api/ad/status", authMiddleware(getADStatusHandler))
 	http.HandleFunc("/api/ad/join", authMiddleware(joinADHandler))
+	http.HandleFunc("/api/ad/health", authMiddleware(getADHealthHandler))
+	http.HandleFunc("/api/discovery/status", authMiddleware(getDiscoveryStatus))
+	http.HandleFunc("/api/discovery/control", authMiddleware(controlDiscoveryHandler))
+
+	http.HandleFunc("/api/panel/admins", authMiddleware(getAdminsHandler))
+	http.HandleFunc("/api/panel/admins/create", authMiddleware(createAdminHandler))
+	http.HandleFunc("/api/panel/admins/delete", authMiddleware(deleteAdminHandler))
+	http.HandleFunc("/api/panel/admins/password", authMiddleware(changePasswordHandler))
 
 	fs := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fs)

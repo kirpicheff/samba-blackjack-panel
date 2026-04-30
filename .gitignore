@@ -5,7 +5,7 @@
 *.so
 *.dylib
 bin/
-
+admins.json
 # Dev configs
 # smb.conf.dev # Оставим для примера, если нужно
 

@@ -63,6 +63,7 @@ async function updateStatus() {
         
         updateServiceStatus();
         loadDiskUsage();
+        loadDiscoveryStatus();
     } catch (e) { console.error(e); }
 }
 
@@ -795,7 +796,93 @@ function showSettingsSection(sectionId, element) {
     if (element) element.classList.add('active');
     
     if (sectionId === 'ad') checkADStatus();
+    if (sectionId === 'discovery') loadDiscoveryManagement();
+    if (sectionId === 'panel-admins') loadPanelAdmins();
     if (window.lucide) lucide.createIcons();
+}
+
+async function loadDiscoveryStatus() {
+    try {
+        const res = await fetch('/api/discovery/status');
+        const services = await res.json();
+        const container = document.getElementById('discovery-status-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+        services.forEach(s => {
+            const statusClass = s.active ? 'online' : 'offline';
+            const statusText = s.active ? 'Active' : 'Stopped';
+            const label = s.name === 'wsdd' ? 'Windows (WSDD)' : 'macOS/Linux (Avahi)';
+            
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                    <span style="color: var(--text-secondary);">${label}</span>
+                    <span class="badge ${statusClass}" style="font-size: 0.65rem; padding: 2px 8px;">${statusText}</span>
+                </div>
+            `;
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadDiscoveryManagement() {
+    try {
+        const res = await fetch('/api/discovery/status');
+        const services = await res.json();
+        const container = document.getElementById('discovery-management-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        services.forEach(s => {
+            const label = s.name === 'wsdd' ? 'Windows Service Discovery (WSDD)' : 'Avahi mDNS (Bonjour)';
+            const desc = s.name === 'wsdd' ? 'Позволяет Windows видеть сервер в проводнике.' : 'Позволяет macOS и Linux видеть сервер в Finder.';
+            const statusText = s.active ? 'Запущен' : 'Остановлен';
+            const btnAction = s.active ? 'stop' : 'start';
+            const btnText = s.active ? 'Остановить' : 'Запустить';
+            const btnClass = s.active ? 'btn-outline' : 'btn-primary';
+
+            container.innerHTML += `
+                <div class="stat-card" style="margin-bottom: 1rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 4px;">${label}</h3>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary);">${desc}</p>
+                            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 8px;">
+                                <span class="badge ${s.active ? 'online' : 'offline'}">${statusText}</span>
+                                ${!s.installed ? '<span class="badge" style="background: #fee2e2; color: #ef4444; border:none;">Не установлен</span>' : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <button type="button" class="btn-action ${btnClass}" onclick="controlDiscoveryService('${s.name}', '${btnAction}')" ${!s.installed ? 'disabled' : ''}>
+                                ${btnText}
+                            </button>
+                            ${s.installed ? `
+                                <button type="button" class="btn-action btn-outline" style="font-size: 0.75rem; padding: 4px;" onclick="controlDiscoveryService('${s.name}', 'restart')">
+                                    Перезапустить
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function controlDiscoveryService(service, action) {
+    try {
+        const res = await fetch('/api/discovery/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service, action })
+        });
+        if (res.ok) {
+            loadDiscoveryManagement();
+            loadDiscoveryStatus();
+        } else {
+            const err = await res.text();
+            alert('Ошибка: ' + err);
+        }
+    } catch (e) { console.error(e); }
 }
 
 async function checkADStatus() {
@@ -813,6 +900,7 @@ async function checkADStatus() {
                 badge.style.background = '';
                 badge.style.color = '';
                 if (reqBox) reqBox.style.display = 'none';
+                runADHealthCheck(); // Автозапуск при входе в раздел
             } else {
                 badge.innerText = 'НЕ В ДОМЕНЕ';
                 badge.className = 'badge offline';
@@ -821,6 +909,9 @@ async function checkADStatus() {
                 if (reqBox) reqBox.style.display = 'flex';
             }
         }
+
+        const healthSec = document.getElementById('ad-health-section');
+        if (healthSec) healthSec.style.display = 'block';
         
         if (infoBox) {
             // Показываем подробности (info) только если сервер В ДОМЕНЕ (чтобы видеть ошибки связи)
@@ -886,6 +977,122 @@ async function joinAD() {
         btn.disabled = false;
         if (window.lucide) lucide.createIcons();
     }
+}
+
+async function runADHealthCheck() {
+    const container = document.getElementById('ad-health-results');
+    const lastUpdateEl = document.getElementById('ad-health-last-update');
+    if (!container) return;
+
+    // Временная индикация загрузки
+    const btn = event?.target?.closest('button');
+    if (btn) btn.classList.add('loading-spin');
+
+    try {
+        const res = await fetch('/api/ad/health');
+        const data = await res.json();
+        
+        container.innerHTML = '';
+        data.checks.forEach(check => {
+            const colors = {
+                'ok': { bg: 'rgba(16, 185, 129, 0.05)', text: '#065f46', border: 'rgba(16, 185, 129, 0.2)', icon: 'check-circle' },
+                'warning': { bg: 'rgba(245, 158, 11, 0.05)', text: '#b45309', border: 'rgba(245, 158, 11, 0.2)', icon: 'alert-triangle' },
+                'error': { bg: 'rgba(239, 68, 68, 0.05)', text: '#991b1b', border: 'rgba(239, 68, 68, 0.2)', icon: 'x-circle' }
+            };
+            const c = colors[check.status] || colors['error'];
+
+            container.innerHTML += `
+                <div style="padding: 1rem; background: ${c.bg}; border: 1px solid ${c.border}; border-radius: 12px; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <i data-lucide="${c.icon}" style="color: ${c.text}; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+                    <div style="flex-grow: 1;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="font-weight: 700; font-size: 0.85rem; color: ${c.text};">${check.name}</span>
+                            <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: ${c.text}; opacity: 0.7;">${check.status}</span>
+                        </div>
+                        <p style="font-size: 0.75rem; color: ${c.text}; margin-top: 4px; opacity: 0.9; font-family: 'JetBrains Mono', monospace;">${check.message}</p>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (lastUpdateEl) lastUpdateEl.innerText = 'Последняя проверка: ' + data.last_update;
+        if (window.lucide) lucide.createIcons();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        if (btn) btn.classList.remove('loading-spin');
+    }
+}
+
+async function loadPanelAdmins() {
+    const res = await fetch('/api/panel/admins');
+    const admins = await res.json();
+    const table = document.getElementById('panel-admins-table-body');
+    if (!table) return;
+
+    table.innerHTML = '';
+    admins.forEach(a => {
+        const isSelf = a.username === localStorage.getItem('panel_user');
+        const deleteBtn = (a.username !== 'admin' && !isSelf) 
+            ? `<button class="btn-action btn-outline" style="color: #ef4444; padding: 4px 8px;" onclick="deletePanelAdmin('${a.username}')"><i data-lucide="trash-2" style="width:14px"></i></button>`
+            : '<span style="color: var(--text-secondary); font-size: 0.7rem;">Защищено</span>';
+
+        table.innerHTML += `<tr>
+            <td><strong>${a.username} ${isSelf ? '<span style="color: var(--accent-blue)">(Вы)</span>' : ''}</strong></td>
+            <td><span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none;">${a.role}</span></td>
+            <td>${deleteBtn}</td>
+        </tr>`;
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+async function changePanelPassword() {
+    const oldPass = document.getElementById('admin-old-pass').value;
+    const newPass = document.getElementById('admin-new-pass').value;
+    if (!oldPass || !newPass) { alert('Заполните оба поля'); return; }
+
+    const res = await fetch('/api/panel/admins/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_password: oldPass, new_password: newPass })
+    });
+    if (res.ok) {
+        alert('Пароль успешно изменен');
+        document.getElementById('admin-old-pass').value = '';
+        document.getElementById('admin-new-pass').value = '';
+    } else {
+        const err = await res.text();
+        alert('Ошибка: ' + err);
+    }
+}
+
+function openAdminModal() { document.getElementById('admin-modal').style.display = 'block'; }
+function closeAdminModal() { document.getElementById('admin-modal').style.display = 'none'; }
+
+document.getElementById('admin-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('new-admin-user').value;
+    const password = document.getElementById('new-admin-pass').value;
+    const role = document.getElementById('new-admin-role').value;
+
+    const res = await fetch('/api/panel/admins/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role })
+    });
+    if (res.ok) {
+        closeAdminModal();
+        loadPanelAdmins();
+    } else {
+        const err = await res.text();
+        alert('Ошибка: ' + err);
+    }
+});
+
+async function deletePanelAdmin(username) {
+    if (!confirm(`Удалить администратора ${username}?`)) return;
+    const res = await fetch(`/api/panel/admins/delete?username=${username}`, { method: 'DELETE' });
+    if (res.ok) loadPanelAdmins();
 }
 
 setInterval(updateStatus, 3000);

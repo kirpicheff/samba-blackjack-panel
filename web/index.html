@@ -91,24 +91,17 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><i data-lucide="cpu" style="width: 16px;"></i> Версия Samba</div>
-                    <div class="stat-value mono" id="samba-version" style="font-size: 1.1rem;">-</div>
+                    <div class="stat-value" id="samba-version" style="font-size: 1.1rem;">-</div>
                     <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--accent-blue); font-weight: 600;">System Core</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><i data-lucide="search" style="width: 16px;"></i> Сетевое обнаружение</div>
+                    <div id="discovery-status-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 8px;">
+                        <!-- JS populate -->
+                    </div>
                 </div>
             </div>
 
-            <div class="content-panel" style="border-left: 6px solid #f59e0b;">
-                <div class="panel-header" style="border: none; padding-bottom: 0.5rem;">
-                    <div>
-                        <h2 style="color: #b45309; display: flex; align-items: center; gap: 0.5rem;">
-                            <i data-lucide="trash-2"></i> Обслуживание системы
-                        </h2>
-                        <p style="font-size: 0.85rem; color: #d97706; margin-top: 4px;">Очистка временных файлов и всех сетевых корзин</p>
-                    </div>
-                    <button class="btn-action btn-success" style="background: #f59e0b;" onclick="clearRecycleBins()">
-                        <i data-lucide="eraser"></i> Очистить все корзины
-                    </button>
-                </div>
-            </div>
 
             <div class="content-panel">
                 <div class="panel-header">
@@ -233,8 +226,14 @@
                     <div class="settings-nav-item" onclick="showSettingsSection('ad', this)">
                         <i data-lucide="database"></i> Active Directory
                     </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('discovery', this)">
+                        <i data-lucide="search"></i> Обнаружение (WSDD/Avahi)
+                    </div>
                     <div class="settings-nav-item" onclick="showSettingsSection('debug', this)">
                         <i data-lucide="bug"></i> Логи и Отладка
+                    </div>
+                    <div class="settings-nav-item" onclick="showSettingsSection('panel-admins', this)">
+                        <i data-lucide="shield-check"></i> Администраторы панели
                     </div>
                 </div>
 
@@ -371,6 +370,19 @@
                                     </button>
                                 </div>
 
+                                <div id="ad-health-section" style="margin-top: 2rem; display: none;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h3 style="font-size: 0.9rem; font-weight: 700;">Диагностика подключения (Health Check)</h3>
+                                        <button type="button" class="btn-action btn-outline" style="font-size: 0.75rem; padding: 4px 10px;" onclick="runADHealthCheck()">
+                                            <i data-lucide="refresh-cw"></i> Запустить проверку
+                                        </button>
+                                    </div>
+                                    <div id="ad-health-results" style="display: flex; flex-direction: column; gap: 8px;">
+                                        <!-- JS populate -->
+                                    </div>
+                                    <div id="ad-health-last-update" style="margin-top: 0.75rem; font-size: 0.7rem; color: var(--text-secondary); text-align: right;"></div>
+                                </div>
+
                                 <div style="margin-top: 2rem;">
                                     <h3 style="font-size: 0.9rem; margin-bottom: 1rem;">Дополнительные параметры Winbind</h3>
                                     <div class="form-group">
@@ -389,6 +401,24 @@
                         </div>
                     </div>
 
+                    <div id="sec-discovery" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="search"></i> Сетевое обнаружение</h2></div>
+                            <div style="padding: 2rem;">
+                                <div id="discovery-management-container">
+                                    <!-- JS populate -->
+                                </div>
+                                <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(59, 130, 246, 0.05); border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.1);">
+                                    <h4 style="font-size: 0.85rem; color: var(--accent-blue); margin-bottom: 0.5rem;">Как это работает?</h4>
+                                    <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                                        <b>WSDD</b> позволяет серверу отображаться в разделе «Сеть» (Network) в Windows 10/11.<br>
+                                        <b>Avahi</b> обеспечивает обнаружение сервера в macOS (Finder) и Linux через протокол mDNS/Bonjour.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="sec-debug" class="settings-section" style="display:none;">
                         <div class="content-panel">
                             <div class="panel-header"><h2><i data-lucide="bug"></i> Логи и Отладка</h2></div>
@@ -401,6 +431,43 @@
                                     </select>
                                 </div>
                                 <div class="form-group"><label>Max Log Size (KB)</label><input type="number" name="max log size" value="1000"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sec-panel-admins" class="settings-section" style="display:none;">
+                        <div class="content-panel">
+                            <div class="panel-header"><h2><i data-lucide="shield-check"></i> Управление доступом к панели</h2></div>
+                            <div style="padding: 2rem;">
+                                <div>
+                                    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Смена вашего пароля</h3>
+                                    <div class="form-group"><label>Старый пароль</label><input type="password" id="admin-old-pass"></div>
+                                    <div class="form-group"><label>Новый пароль</label><input type="password" id="admin-new-pass"></div>
+                                    <button type="button" class="btn-action btn-primary" onclick="changePanelPassword()">Сменить пароль</button>
+                                </div>
+
+                                <div style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                        <h3 style="font-size: 1rem;">Другие администраторы</h3>
+                                        <button type="button" class="btn-action btn-outline" onclick="openAdminModal()" style="font-size: 0.8rem;">
+                                            <i data-lucide="plus" style="width: 14px;"></i> Добавить
+                                        </button>
+                                    </div>
+                                    <div class="table-container">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Логин</th>
+                                                    <th>Роль</th>
+                                                    <th>Действие</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="panel-admins-table-body">
+                                                <!-- JS populate -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -490,6 +557,20 @@
                 <button class="btn-action btn-success" onclick="saveAutomationSettings()">
                     <i data-lucide="check-circle"></i> Применить настройки
                 </button>
+            </div>
+
+            <div class="content-panel" style="margin-top: 2rem; border-left: 6px solid #f59e0b;">
+                <div class="panel-header">
+                    <div>
+                        <h2 style="color: #b45309; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="hammer"></i> Ручное обслуживание</h2>
+                        <p style="font-size: 0.85rem; color: #d97706; margin-top: 4px;">Мгновенное выполнение системных задач</p>
+                    </div>
+                </div>
+                <div style="padding: 2rem; display: flex; gap: 1rem;">
+                    <button class="btn-action btn-success" style="background: #f59e0b;" onclick="clearRecycleBins()">
+                        <i data-lucide="trash-2"></i> Очистить все сетевые корзины
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -655,6 +736,30 @@
                     <button type="button" class="btn-action btn-outline" onclick="closeGroupMembersModal()">Закрыть</button>
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- Модальное окно: Новый администратор -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="panel-header">
+                <h2>Новый администратор панели</h2>
+                <div class="close" onclick="closeAdminModal()">&times;</div>
+            </div>
+            <form id="admin-form" style="padding: 2rem;">
+                <div class="form-group"><label>Логин</label><input type="text" id="new-admin-user" required></div>
+                <div class="form-group"><label>Пароль</label><input type="password" id="new-admin-pass" required></div>
+                <div class="form-group">
+                    <label>Роль</label>
+                    <select id="new-admin-role">
+                        <option value="admin">Admin</option>
+                        <option value="superadmin">SuperAdmin</option>
+                    </select>
+                </div>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn-action btn-outline" onclick="closeAdminModal()">Отмена</button>
+                    <button type="submit" class="btn-action btn-primary">Создать</button>
+                </div>
+            </form>
         </div>
     </div>
 
