@@ -31,9 +31,10 @@ sudo ./install.sh
 - **创建与编辑**：通过 UI 全面管理 `smb.conf` 配置节。
 - **回收站 (Recycle Bin)**：自动清理、文件排除、路径配置。
 - **审计**：将操作行为（删除、重命名）记录到集成日志中。
-- **文件系统权限 (ACL)**：所有者、组和访问权限 (`chmod`) 的可视化编辑器，支持八进制掩码和复选框矩阵。
-- **IP 限制**：全局或按资源配置 `hosts allow` 和 `hosts deny`。
-- **影子副本**：支持 VFS Shadow Copy 2 以进行文件恢复。
+- **文件系统权限 (ACL)**: 具有八进制掩码和复选框矩阵的所有者、组和访问模式 (`chmod`) 的可视化编辑器。
+- **IP 限制**: 在全局和特定共享上配置 `hosts allow` 和 `hosts deny`。
+- **卷影复制**: 支持 VFS Shadow Copy 2 以进行文件恢复。
+- **磁盘配额**: 管理用户和组的空间限制 (软/硬限制)，并具有可视化的使用情况监控。
 
 ### 👥 用户与组
 - **Samba 用户**：通过 `pdbedit` 管理账户（创建、密码、删除）。
@@ -50,8 +51,9 @@ sudo ./install.sh
 - **面板访问**：多用户登录、Bcrypt 密码哈希、管理员管理。
 
 ### 📜 日志与自动化
-- **实时日志**：通过 WebSockets 实时查看 `log.smbd`。
-- **审计日志**：在集成表格中查看用户操作历史。
+- **实时日志**: 通过 WebSockets 实时查看 `log.smbd`。
+- **文件管理器**: 功能齐全的内置管理器，可直接从浏览器创建文件夹、重命名和删除文件。
+- **审计日志**: 在集成表中查看用户活动历史。
 - **后台任务**：自动清理回收站和创建快照 (snapshots)。
 
 ---
@@ -74,9 +76,14 @@ sudo ./install.sh
 
 ### 系统要求 (Linux)
 为使所有功能正常运行：
+
+> [!IMPORTANT]
+> **磁盘配额:** 要使配额在 Linux 上运行，分区必须在 `/etc/fstab` 中使用 `usrquota` 和 `grpquota` 选项进行挂载。
+> 示例: `/dev/sdb1 /shares ext4 defaults,usrquota,grpquota 0 2`
+
 ```bash
 sudo apt update
-sudo apt install samba samba-common-bin krb5-user winbind avahi-daemon acl
+sudo apt install samba samba-common-bin krb5-user winbind avahi-daemon acl quota
 ```
 
 ### 访问恢复

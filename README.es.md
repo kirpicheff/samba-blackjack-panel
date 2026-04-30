@@ -31,9 +31,10 @@ Después de la instalación, el panel estará disponible en: `http://su-ip:8888`
 - **Creación y Edición**: Gestión completa de secciones `smb.conf` a través de la UI.
 - **Papelera de Red**: Limpieza automática, exclusión de archivos, configuración de rutas.
 - **Auditoría**: Registro de acciones (eliminar, renombrar) en un log integrado.
-- **Permisos de FS (ACL)**: Editor visual de propietario, grupo y derechos de acceso (`chmod`) con máscara octal y matriz de casillas.
-- **Restricción por IP**: Configuración de `hosts allow` y `hosts deny` globalmente y por recurso.
-- **Copias de Sombra**: Soporte para VFS Shadow Copy 2 para recuperación de archivos.
+- **Permisos de FS (ACL)**: Editor visual para propietario, grupo y modos de acceso (`chmod`) con máscara octal y matriz de casillas.
+- **Restricciones de IP**: Configure `hosts allow` y `hosts deny` tanto globalmente como para recursos específicos.
+- **Instantáneas (Shadow Copies)**: Soporte para VFS Shadow Copy 2 para recuperación de archivos.
+- **Cuotas de Disco**: Gestione límites de espacio (Blando/Duro) para usuarios y grupos con monitoreo visual de uso.
 
 ### 👥 Usuarios y Grupos
 - **Usuarios Samba**: Gestión de cuentas a través de `pdbedit` (creación, contraseñas, eliminación).
@@ -50,8 +51,9 @@ Después de la instalación, el panel estará disponible en: `http://su-ip:8888`
 - **Acceso al Panel**: Inicio de sesión multiusuario, hashing de contraseñas con Bcrypt, gestión de administradores.
 
 ### 📜 Logs y Automatización
-- **Live Logs**: Visualización en tiempo real de `log.smbd` a través de WebSockets.
-- **Registro de Auditoría**: Historial de acciones de usuario en una tabla integrada.
+- **Live Logs**: Ver `log.smbd` en tiempo real vía WebSockets.
+- **Gestor de Archivos**: Gestor integrado con todas las funciones para crear carpetas, renombrar y eliminar archivos directamente desde el navegador.
+- **Registro de Auditoría**: Ver el historial de actividad de los usuarios en una tabla integrada.
 - **Tareas en Segundo Plano**: Limpieza automática de papeleras y creación de instantáneas (snapshots).
 
 ---
@@ -74,9 +76,14 @@ Si ejecuta el panel en sistemas que no son Linux, cambia automáticamente al **M
 
 ### Requisitos del Sistema (Linux)
 Para que todas las funciones funcionen:
+
+> [!IMPORTANT]
+> **Cuotas de Disco:** Para que las cuotas funcionen en Linux, la partición debe estar montada con las opciones `usrquota` и `grpquota` en `/etc/fstab`. 
+> Ejemplo: `/dev/sdb1 /shares ext4 defaults,usrquota,grpquota 0 2`
+
 ```bash
 sudo apt update
-sudo apt install samba samba-common-bin krb5-user winbind avahi-daemon acl
+sudo apt install samba samba-common-bin krb5-user winbind avahi-daemon acl quota
 ```
 
 ### Recuperación de Acceso

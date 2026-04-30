@@ -14,6 +14,7 @@
     "nav_files": "Gestor de Archivos",
     "nav_audit": "Auditoría",
     "nav_automation": "Automatización",
+    "nav_quotas": "Cuotas de Disco",
     "nav_logout": "Cerrar Sesión",
     "page_dashboard_title": "Panel de Control",
     "page_dashboard_subtitle": "Monitoreo y Gestión del Servidor Samba",
@@ -243,6 +244,7 @@
     "subtitle_logs": "Monitoreo de eventos del sistema en tiempo real",
     "subtitle_audit": "Historial de interacción de archivos de usuario",
     "subtitle_automation": "Configurar tareas de mantenimiento automático",
+    "subtitle_quotas": "Límites de uso de espacio para usuarios и grupos",
     "nav_refresh": "Actualizar",
     "label_auto_recycle_days": "Autolimpieza (días)",
     "label_auto_recycle_desc": "0 — desactivar limpieza",
@@ -287,5 +289,16 @@
     "fm_error_load": "Error al cargar el contenido de la carpeta",
     "fm_error_mkdir": "Error al crear la carpeta",
     "fm_error_rename": "Error al renombrar",
-    "fm_error_delete": "Error al eliminar"
+    "fm_error_delete": "Error al eliminar",
+    "quota_title": "Cuotas de Disco",
+    "quota_user_tab": "Cuotas de Usuario",
+    "quota_group_tab": "Cuotas de Grupo",
+    "table_quota_limit_soft": "Límite Blando",
+    "table_quota_limit_hard": "Límite Duro",
+    "table_quota_usage": "Uso",
+    "btn_edit_quota": "Editar Límite",
+    "modal_quota_title": "Establecer límites para {name}",
+    "quota_save_success": "Cuota actualizada con éxito",
+    "label_quota_soft": "Límite Blando (MB)",
+    "label_quota_hard": "Límite Duro (MB)"
 }

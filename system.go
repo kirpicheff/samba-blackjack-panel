@@ -366,7 +366,10 @@ func clearRecycleBinsHandler(w http.ResponseWriter, r *http.Request) {
 		if repo == "" { repo = ".recycle" }
 		fullPath := filepath.Join(sharePath, strings.Split(repo, "/")[0])
 		if os.PathSeparator == '\\' { continue }
-		exec.Command("sh", "-c", fmt.Sprintf("rm -rf %s/*", fullPath)).Run()
+		files, _ := os.ReadDir(fullPath)
+		for _, f := range files {
+			os.RemoveAll(filepath.Join(fullPath, f.Name()))
+		}
 	}
 	w.WriteHeader(http.StatusOK)
 }

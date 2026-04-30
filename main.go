@@ -64,6 +64,10 @@ func main() {
 	fs := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fs)
 
+	// Квоты
+	http.HandleFunc("/api/quotas/list", authMiddleware(listQuotasHandler))
+	http.HandleFunc("/api/quotas/update", authMiddleware(updateQuotaHandler))
+
 	port := ":8888"
 	fmt.Printf("🚀 Samba Blackjack Panel запущен на http://localhost%s\n", port)
 

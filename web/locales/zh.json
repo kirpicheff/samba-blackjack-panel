@@ -14,6 +14,7 @@
     "nav_files": "文件管理器",
     "nav_audit": "审计日志",
     "nav_automation": "自动化",
+    "nav_quotas": "磁盘配额",
     "nav_logout": "注销",
     "page_dashboard_title": "仪表板",
     "page_dashboard_subtitle": "Samba 服务器监控与管理",
@@ -243,6 +244,7 @@
     "subtitle_logs": "实时系统事件监控",
     "subtitle_audit": "用户文件交互历史",
     "subtitle_automation": "配置自动维护任务",
+    "subtitle_quotas": "管理用户和组的磁盘空间限制",
     "nav_refresh": "刷新",
     "label_auto_recycle_days": "自动清理 (天)",
     "label_auto_recycle_desc": "0 — 禁用清理",
@@ -287,5 +289,16 @@
     "fm_error_load": "加载文件夹内容出错",
     "fm_error_mkdir": "创建文件夹出错",
     "fm_error_rename": "重命名出错",
-    "fm_error_delete": "删除出错"
+    "fm_error_delete": "删除错误",
+    "quota_title": "磁盘配额",
+    "quota_user_tab": "用户配额",
+    "quota_group_tab": "组配额",
+    "table_quota_limit_soft": "软限制",
+    "table_quota_limit_hard": "硬限制",
+    "table_quota_usage": "使用情况",
+    "btn_edit_quota": "修改限制",
+    "modal_quota_title": "设置 {name} 的限制",
+    "quota_save_success": "配额更新成功",
+    "label_quota_soft": "软限制 (MB)",
+    "label_quota_hard": "硬限制 (MB)"
 }

@@ -31,9 +31,10 @@ After installation, the panel will be available at: `http://your-ip:8888`.
 - **Create and Edit**: Full management of `smb.conf` sections via UI.
 - **Recycle Bin**: Automatic cleanup, file exclusion, path configuration.
 - **Audit**: Action logging (delete, rename) into an integrated log.
-- **FS Permissions (ACL)**: Visual editor for owner, group, and access rights (`chmod`) with octal mask and checkbox matrix.
-- **IP Restriction**: `hosts allow` and `hosts deny` configuration globally and per-resource.
-- **Shadow Copies**: Support for VFS Shadow Copy 2 for file recovery.
+- **FS Permissions (ACL)**: Visual editor for owner, group, and access modes (`chmod`) with octal mask and checkbox matrix.
+- **IP Restrictions**: Configure `hosts allow` and `hosts deny` both globally and for specific shares.
+- **Shadow Copies**: VFS Shadow Copy 2 support for file restoration.
+- **Disk Quotas**: Manage space limits (Soft/Hard) for users and groups with visual usage monitoring.
 
 ### 👥 Users and Groups
 - **Samba Users**: Account management via `pdbedit` (create, password, delete).
@@ -50,8 +51,9 @@ After installation, the panel will be available at: `http://your-ip:8888`.
 - **Panel Access**: Multi-user login, Bcrypt password hashing, admin management.
 
 ### 📜 Logs and Automation
-- **Live Logs**: Real-time view of `log.smbd` via WebSockets.
-- **Audit Log**: History of user actions in an integrated table.
+- **Live Logs**: View `log.smbd` in real-time via WebSockets.
+- **File Manager**: Full-featured built-in manager for creating folders, renaming, and deleting files directly from the browser.
+- **Audit Log**: View user activity history in an integrated table.
 - **Background Tasks**: Automatic recycle bin cleanup and snapshot creation.
 
 ---
@@ -74,9 +76,14 @@ If you run the panel on non-Linux systems, it automatically switches to **Mock m
 
 ### System Requirements (Linux)
 For all functions to work:
+
+> [!IMPORTANT]
+> **Disk Quotas:** For quotas to work on Linux, the partition must be mounted with `usrquota` and `grpquota` options in `/etc/fstab`. 
+> Example: `/dev/sdb1 /shares ext4 defaults,usrquota,grpquota 0 2`
+
 ```bash
 sudo apt update
-sudo apt install samba samba-common-bin krb5-user winbind avahi-daemon acl
+sudo apt install samba samba-common-bin krb5-user winbind avahi-daemon acl quota
 ```
 
 ### Access Recovery

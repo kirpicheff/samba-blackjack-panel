@@ -12,9 +12,9 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # 2. Install system dependencies
-echo "📦 Installing system dependencies (Samba, Git)..."
+echo "📦 Installing system dependencies (Samba, Git, Quota)..."
 apt update
-apt install -y samba samba-common-bin git
+apt install -y samba samba-common-bin git quota
 
 # 3. Check for Go
 if ! command -v go &> /dev/null; then

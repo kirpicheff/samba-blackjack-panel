@@ -49,6 +49,9 @@
             <div class="nav-item" onclick="showTab('automation', this)" data-i18n="nav_automation">
                 <i data-lucide="zap"></i> Автоматизация
             </div>
+            <div class="nav-item" onclick="showTab('quotas', this)" data-i18n="nav_quotas">
+                <i data-lucide="hard-drive"></i> Дисковые квоты
+            </div>
             
             <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-bottom: 1rem;" data-i18n="nav_logout">
                 <i data-lucide="log-out"></i> Выход
@@ -624,6 +627,32 @@
                 </div>
             </div>
         </div>
+        
+        <div id="tab-quotas" class="tab-content" style="display:none;">
+            <div class="content-panel">
+                <div class="panel-header">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <h2 data-i18n="quota_title">Дисковые квоты</h2>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="subtitle_quotas">Ограничение использования дискового пространства</p>
+                    </div>
+                    <button class="btn-action btn-outline" onclick="loadQuotas()"><i data-lucide="refresh-cw"></i> <span data-i18n="nav_refresh">Обновить</span></button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-i18n="table_user">Пользователь</th>
+                                <th data-i18n="table_quota_usage">Использование</th>
+                                <th data-i18n="table_quota_limit_soft">Мягкий лимит</th>
+                                <th data-i18n="table_quota_limit_hard">Жесткий лимит</th>
+                                <th style="text-align: right;" data-i18n="table_actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quota-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Модальное окно ресурса -->
@@ -883,6 +912,31 @@
                     <button type="submit" class="btn-action btn-primary" data-i18n="btn_create">Создать</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal for Quotas -->
+    <div id="quota-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="panel-header" style="border: none; padding: 2rem 2rem 1rem 2rem;">
+                <h2 id="quota-modal-title">Set Limits</h2>
+                <div class="close" onclick="closeModal('quota-modal')">&times;</div>
+            </div>
+            <div style="padding: 2rem;">
+                <input type="hidden" id="quota-user">
+                <div class="form-group">
+                    <label data-i18n="label_quota_soft">Soft Limit (MB)</label>
+                    <input type="number" id="quota-soft">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_quota_hard">Hard Limit (MB)</label>
+                    <input type="number" id="quota-hard">
+                </div>
+                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                    <button class="btn-action btn-primary" style="flex: 1;" onclick="saveQuota()" data-i18n="btn_save">Save</button>
+                    <button class="btn-action btn-outline" style="flex: 1;" onclick="closeModal('quota-modal')" data-i18n="btn_cancel">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 

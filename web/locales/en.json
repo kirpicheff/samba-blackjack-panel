@@ -14,6 +14,7 @@
     "nav_files": "File Manager",
     "nav_audit": "Audit Log",
     "nav_automation": "Automation",
+    "nav_quotas": "Disk Quotas",
     "nav_logout": "Logout",
     "page_dashboard_title": "Dashboard",
     "page_dashboard_subtitle": "Samba Server Monitoring and Management",
@@ -243,6 +244,7 @@
     "subtitle_logs": "Real-time System Events Monitoring",
     "subtitle_audit": "User File Interaction History",
     "subtitle_automation": "Configure Automatic Maintenance Tasks",
+    "subtitle_quotas": "Disk Space Usage Limits for Users and Groups",
     "nav_refresh": "Refresh",
     "label_auto_recycle_days": "Auto-cleanup (days)",
     "label_auto_recycle_desc": "0 — disable cleanup",
@@ -287,5 +289,16 @@
     "fm_error_load": "Error loading folder content",
     "fm_error_mkdir": "Error creating folder",
     "fm_error_rename": "Error renaming",
-    "fm_error_delete": "Error deleting"
+    "fm_error_delete": "Error deleting",
+    "quota_title": "Disk Quotas",
+    "quota_user_tab": "User Quotas",
+    "quota_group_tab": "Group Quotas",
+    "table_quota_limit_soft": "Soft Limit",
+    "table_quota_limit_hard": "Hard Limit",
+    "table_quota_usage": "Usage",
+    "btn_edit_quota": "Edit Limit",
+    "modal_quota_title": "Set Limits for {name}",
+    "quota_save_success": "Quota updated successfully",
+    "label_quota_soft": "Soft Limit (MB)",
+    "label_quota_hard": "Hard Limit (MB)"
 }

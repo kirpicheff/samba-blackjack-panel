@@ -81,7 +81,8 @@ function showTab(tabName, element) {
         'global': i18n('nav_global'),
         'logs': i18n('nav_logs'),
         'audit': i18n('nav_audit'),
-        'automation': i18n('nav_automation')
+        'automation': i18n('nav_automation'),
+        'quotas': i18n('nav_quotas')
     };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.innerText = titles[tabName] || 'Samba Panel';
@@ -107,6 +108,7 @@ function showTab(tabName, element) {
     if (tabName === 'audit') loadAuditLogs();
     if (tabName === 'automation') loadAutomationSettings();
     if (tabName === 'files') loadFileManager();
+    if (tabName === 'quotas') loadQuotas();
 }
 
 async function updateStatus() {
@@ -1524,5 +1526,82 @@ function formatBytes(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
+}
+
 initI18n();
 setInterval(updateStatus, 3000);
+
+async function loadQuotas() {
+    const container = document.getElementById('quota-table-body');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/quotas/list');
+        const data = await res.json();
+
+        container.innerHTML = '';
+        data.forEach(q => {
+            const softMB = Math.round(q.soft_limit / 1024);
+            const hardMB = Math.round(q.hard_limit / 1024);
+            const usedMB = Math.round(q.used / 1024);
+            
+            let barColor = 'var(--accent-blue)';
+            if (q.usage_pct > 80) barColor = '#f59e0b';
+            if (q.usage_pct > 95) barColor = '#ef4444';
+
+            container.innerHTML += `
+                <tr>
+                    <td><strong>${q.user}</strong></td>
+                    <td style="width: 300px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex-grow: 1; background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${Math.min(q.usage_pct, 100)}%; background: ${barColor}; height: 100%; transition: width 0.5s;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); width: 80px;">${q.usage_pct}% (${usedMB.toFixed(1)} MB)</span>
+                        </div>
+                    </td>
+                    <td class="mono">${softMB > 0 ? softMB + ' MB' : '-'}</td>
+                    <td class="mono">${hardMB > 0 ? hardMB + ' MB' : '-'}</td>
+                    <td style="text-align: right;">
+                        <button class="btn-action btn-outline" onclick="editQuota('${q.user}', ${softMB}, ${hardMB})">
+                            <i data-lucide="edit-3" style="width: 14px;"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        if (window.lucide) lucide.createIcons();
+    } catch (e) { console.error(e); }
+}
+
+function editQuota(user, soft, hard) {
+    document.getElementById('quota-user').value = user;
+    document.getElementById('quota-soft').value = soft;
+    document.getElementById('quota-hard').value = hard;
+    document.getElementById('quota-modal-title').innerText = i18n('modal_quota_title').replace('{name}', user);
+    document.getElementById('quota-modal').style.display = 'block';
+}
+
+async function saveQuota() {
+    const user = document.getElementById('quota-user').value;
+    const soft = parseInt(document.getElementById('quota-soft').value) || 0;
+    const hard = parseInt(document.getElementById('quota-hard').value) || 0;
+
+    try {
+        const res = await fetch('/api/quotas/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user, soft_limit: soft, hard_limit: hard })
+        });
+        if (res.ok) {
+            closeModal('quota-modal');
+            loadQuotas();
+            showToast(i18n('quota_save_success'));
+        } else {
+            alert(await res.text());
+        }
+    } catch (e) { console.error(e); }
+}

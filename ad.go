@@ -90,7 +90,8 @@ func joinADHandler(w http.ResponseWriter, r *http.Request) {
 	timeCmd := exec.Command("net", "ads", "time", "set", "-S", req.Realm, "-U", req.Admin+"%"+req.Password)
 	timeCmd.Run()
 
-	kinitCmd := exec.Command("sh", "-c", fmt.Sprintf("echo '%s' | kinit %s@%s", req.Password, req.Admin, strings.ToUpper(req.Realm)))
+	kinitCmd := exec.Command("kinit", fmt.Sprintf("%s@%s", req.Admin, strings.ToUpper(req.Realm)))
+	kinitCmd.Stdin = strings.NewReader(req.Password)
 	if output, err := kinitCmd.CombinedOutput(); err != nil {
 		http.Error(w, "Kerberos error: "+string(output), 500)
 		return

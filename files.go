@@ -18,11 +18,36 @@ type FileItem struct {
 	Mode    string `json:"mode"`
 }
 
+// isPathSafe проверяет, находится ли путь внутри одной из разрешенных директорий (шар)
+func isPathSafe(path string) bool {
+	cleanPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return false
+	}
+
+	allowedPaths := getAllSharePaths()
+	for _, allowed := range allowedPaths {
+		absAllowed, err := filepath.Abs(filepath.Clean(allowed))
+		if err != nil {
+			continue
+		}
+		if strings.HasPrefix(cleanPath, absAllowed) {
+			return true
+		}
+	}
+	return false
+}
+
 // listContentHandler возвращает список файлов и папок по указанному пути
 func listContentHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	if path == "" {
 		http.Error(w, "Путь не указан", 400)
+		return
+	}
+
+	if !isPathSafe(path) {
+		http.Error(w, "Доступ запрещен: путь вне разрешенных директорий", 403)
 		return
 	}
 
@@ -71,6 +96,10 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullPath := filepath.Join(req.Path, req.Name)
+	if !isPathSafe(fullPath) {
+		http.Error(w, "Доступ запрещен", 403)
+		return
+	}
 	if err := os.Mkdir(fullPath, 0755); err != nil {
 		http.Error(w, "Ошибка создания папки: "+err.Error(), 500)
 		return
@@ -92,6 +121,10 @@ func renameFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	oldPath := filepath.Join(req.Path, req.OldName)
 	newPath := filepath.Join(req.Path, req.NewName)
+	if !isPathSafe(oldPath) || !isPathSafe(newPath) {
+		http.Error(w, "Доступ запрещен", 403)
+		return
+	}
 	if err := os.Rename(oldPath, newPath); err != nil {
 		http.Error(w, "Ошибка переименования: "+err.Error(), 500)
 		return
@@ -111,6 +144,10 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullPath := filepath.Join(req.Path, req.Name)
+	if !isPathSafe(fullPath) {
+		http.Error(w, "Доступ запрещен", 403)
+		return
+	}
 	if err := os.RemoveAll(fullPath); err != nil {
 		http.Error(w, "Ошибка удаления: "+err.Error(), 500)
 		return

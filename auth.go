@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,7 +14,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var sessions = make(map[string]time.Time)
+type SessionData struct {
+	Expiry   time.Time
+	Username string
+}
+
+var sessions = make(map[string]SessionData)
 
 const sessionCookieName = "samba_session"
 
@@ -72,8 +79,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := "session-" + fmt.Sprint(time.Now().UnixNano()) + "-" + user.Username
-	sessions[token] = time.Now().Add(24 * time.Hour)
+	b := make([]byte, 32)
+	rand.Read(b)
+	token := hex.EncodeToString(b)
+	sessions[token] = SessionData{
+		Expiry:   time.Now().Add(24 * time.Hour),
+		Username: user.Username,
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
@@ -113,8 +125,8 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		expiry, v := sessions[cookie.Value]
-		if !v || time.Now().After(expiry) {
+		sess, v := sessions[cookie.Value]
+		if !v || time.Now().After(sess.Expiry) {
 			http.Error(w, "Unauthorized", 401)
 			return
 		}
@@ -142,8 +154,8 @@ func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie, _ := r.Cookie(sessionCookieName)
-	tokenParts := strings.Split(cookie.Value, "-")
-	currentUser := tokenParts[len(tokenParts)-1]
+	sess := sessions[cookie.Value]
+	currentUser := sess.Username
 
 	for i, a := range admins {
 		if a.Username == currentUser {

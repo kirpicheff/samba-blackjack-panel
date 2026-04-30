@@ -14,6 +14,24 @@ import (
 const smbConfPath = "/etc/samba/smb.conf"
 const devSmbConfPath = "smb.conf.dev"
 
+func getAllSharePaths() []string {
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+	cfg, err := ini.Load(path)
+	if err != nil {
+		return nil
+	}
+	var paths []string
+	for _, section := range cfg.Sections() {
+		if p := section.Key("path").String(); p != "" {
+			paths = append(paths, p)
+		}
+	}
+	return paths
+}
+
 func getShares(w http.ResponseWriter, r *http.Request) {
 	path := smbConfPath
 	if _, err := os.Stat(path); os.IsNotExist(err) {
