@@ -1,13 +1,28 @@
-function showTab(tabName, el) {
-    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    
-    document.getElementById('tab-' + tabName).style.display = 'block';
-    if (el) el.classList.add('active');
+function showTab(tabName, element) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+    const tab = document.getElementById(`tab-${tabName}`);
+    if (tab) tab.style.display = 'block';
+    if (element) element.classList.add('active');
+
+    // Update header title
+    const titles = { 'dashboard': 'Дашборд', 'shares': 'Общие ресурсы', 'users': 'Пользователи', 'global': 'Настройки сервера' };
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) pageTitle.innerText = titles[tabName] || 'Samba Panel';
+
+    // Show apply button only on config tabs
+    const applyBtn = document.getElementById('btn-apply');
+    if (applyBtn) {
+        const configTabs = ['shares', 'global'];
+        applyBtn.style.display = configTabs.includes(tabName) ? 'block' : 'none';
+    }
 
     if (tabName === 'shares') loadShares();
     if (tabName === 'users') loadUsers();
     if (tabName === 'global') loadGlobalConfig();
+    if (tabName === 'logs') loadLogs();
+    if (tabName === 'audit') loadAuditLogs();
 }
 
 async function updateStatus() {
@@ -28,6 +43,54 @@ async function updateStatus() {
         for (const id in data.sessions) {
             const s = data.sessions[id];
             sessionTable.innerHTML += `<tr><td><strong>${s.user}</strong></td><td>${s.remote_machine}</td><td><span class="mono">${s.protocol_version}</span></td></tr>`;
+        }
+        
+        updateServiceStatus();
+        loadDiskUsage();
+    } catch (e) { console.error(e); }
+}
+
+async function updateServiceStatus() {
+    try {
+        const res = await fetch('/api/service/status');
+        const status = await res.text();
+        const badge = document.getElementById('service-status-badge');
+        const topBadge = document.getElementById('samba-status-badge');
+        
+        if (status === 'active') {
+            badge.innerText = 'RUNNING';
+            badge.className = 'badge online';
+            if (topBadge) {
+                topBadge.innerText = 'SMB: ONLINE';
+                topBadge.className = 'badge online';
+            }
+        } else {
+            badge.innerText = status.toUpperCase() || 'STOPPED';
+            badge.className = 'badge';
+            badge.style.background = '#64748b';
+            if (topBadge) {
+                topBadge.innerText = 'SMB: OFFLINE';
+                topBadge.className = 'badge';
+                topBadge.style.background = '#ef4444';
+            }
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function controlService(action) {
+    if (!confirm(`Вы уверены, что хотите выполнить команду "${action}" для сервиса Samba?`)) return;
+    
+    try {
+        const res = await fetch('/api/service/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        });
+        if (res.ok) {
+            updateServiceStatus();
+        } else {
+            const error = await res.text();
+            alert('Ошибка управления сервисом: ' + error);
         }
     } catch (e) { console.error(e); }
 }
@@ -67,6 +130,7 @@ function openShareModal(share = null) {
     document.getElementById('share-path').value = share ? share.path : '';
     document.getElementById('share-comment').value = share ? (share.params.comment || '') : '';
     document.getElementById('share-recycle').checked = share ? share.is_recycle : false;
+    document.getElementById('share-audit').checked = share ? share.is_audit : false;
     document.getElementById('share-readonly').checked = share ? (share.params['read only'] !== 'no') : false;
     document.getElementById('share-guest').checked = share ? (share.params['guest ok'] !== 'no') : true;
     document.getElementById('share-browseable').checked = share ? (share.params['browseable'] !== 'no') : true;
@@ -76,6 +140,20 @@ function openShareModal(share = null) {
     document.getElementById('share-recycle-exclude').value = share ? (share.params['recycle:exclude'] || '') : '';
     document.getElementById('share-recycle-exclude-dir').value = share ? (share.params['recycle:exclude_dir'] || '') : '';
 
+    // Audit fields
+    if (share && share.is_audit) {
+        const success = share.params['full_audit:success'] || '';
+        document.getElementById('audit-unlink').checked = success.includes('unlink');
+        document.getElementById('audit-rename').checked = success.includes('rename');
+        document.getElementById('audit-mkdir').checked = success.includes('mkdir');
+        document.getElementById('audit-open').checked = success.includes('open');
+    } else {
+        document.getElementById('audit-unlink').checked = true;
+        document.getElementById('audit-rename').checked = true;
+        document.getElementById('audit-mkdir').checked = true;
+        document.getElementById('audit-open').checked = false;
+    }
+
     // Advanced fields
     document.getElementById('share-create-mask').value = share ? (share.params['create mask'] || '0664') : '0664';
     document.getElementById('share-dir-mask').value = share ? (share.params['directory mask'] || '0775') : '0775';
@@ -83,6 +161,7 @@ function openShareModal(share = null) {
     document.getElementById('share-guest-only').checked = share ? (share.params['guest only'] === 'yes') : false;
 
     toggleRecycleInfo();
+    toggleAuditInfo();
     modal.style.display = 'block';
 }
 
@@ -103,7 +182,14 @@ function toggleRecycleInfo() {
     }
 }
 
-document.getElementById('share-recycle').addEventListener('change', toggleRecycleInfo);
+function toggleAuditInfo() {
+    const isChecked = document.getElementById('share-audit').checked;
+    document.getElementById('audit-info').style.display = isChecked ? 'block' : 'none';
+}
+
+document.getElementById('share-recycle').onchange = toggleRecycleInfo;
+document.getElementById('share-guest').onchange = toggleRecycleInfo;
+document.getElementById('share-audit').onchange = toggleAuditInfo;
 
 function closeShareModal() {
     document.getElementById('share-modal').style.display = 'none';
@@ -116,6 +202,8 @@ document.getElementById('share-form').onsubmit = async (e) => {
         path: document.getElementById('share-path').value,
         comment: document.getElementById('share-comment').value,
         is_recycle: document.getElementById('share-recycle').checked,
+        is_audit: document.getElementById('share-audit').checked,
+        audit_open: document.getElementById('audit-open').checked,
         params: {
             'read only': document.getElementById('share-readonly').checked ? 'yes' : 'no',
             'guest ok': document.getElementById('share-guest').checked ? 'yes' : 'no',
@@ -184,6 +272,32 @@ document.getElementById('global-form').onsubmit = async (e) => {
     if (res.ok) alert('Глобальные настройки сохранены');
 };
 
+async function applyChanges() {
+    const btn = document.getElementById('btn-apply');
+    if (!btn) return;
+    
+    const originalText = btn.innerText;
+    btn.innerText = 'Применяю...';
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+
+    try {
+        const res = await fetch('/api/service/apply', { method: 'POST' });
+        if (res.ok) {
+            alert('Настройки успешно применены!');
+        } else {
+            const error = await res.text();
+            alert('Ошибка при проверке конфига:\n' + error);
+        }
+    } catch (e) {
+        alert('Ошибка связи с сервером');
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    }
+}
+
 async function loadUsers() {
     try {
         const response = await fetch('/api/users');
@@ -198,13 +312,174 @@ async function loadUsers() {
                 <td><span class="mono">${user.uid}</span></td>
                 <td>${user.full_name || '-'}</td>
                 <td>
-                    <button class="btn-action">Пароль</button>
-                    <button class="btn-action" style="color: #dc2626;">Удалить</button>
+                    <button class="btn-action" onclick="openPasswordModal('${user.username}')">Пароль</button>
+                    <button class="btn-action" style="color: #dc2626;" onclick="deleteUser('${user.username}')">Удалить</button>
                 </td>
             </tr>`;
         });
     } catch (e) { console.error(e); }
 }
+
+function openUserModal() {
+    document.getElementById('user-modal').style.display = 'block';
+    document.getElementById('user-form').reset();
+}
+
+function closeUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+}
+
+document.getElementById('user-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('user-username').value;
+    const password = document.getElementById('user-password').value;
+
+    const res = await fetch('/api/users/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+        closeUserModal();
+        loadUsers();
+    } else {
+        const error = await res.text();
+        alert('Ошибка при сохранении пользователя: ' + error);
+    }
+};
+
+function openPasswordModal(username) {
+    document.getElementById('password-modal').style.display = 'block';
+    document.getElementById('pass-username').value = username;
+    document.getElementById('pass-user-display').innerText = username;
+    document.getElementById('new-password').value = '';
+}
+
+function closePasswordModal() {
+    document.getElementById('password-modal').style.display = 'none';
+}
+
+document.getElementById('password-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('pass-username').value;
+    const password = document.getElementById('new-password').value;
+
+    const res = await fetch('/api/users/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+        alert('Пароль успешно изменен');
+        closePasswordModal();
+    } else {
+        const error = await res.text();
+        alert('Ошибка при смене пароля: ' + error);
+    }
+};
+
+async function deleteUser(username) {
+    if (!confirm(`Вы уверены, что хотите удалить пользователя Samba "${username}"?`)) return;
+
+    const res = await fetch('/api/users/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+    });
+
+    if (res.ok) {
+        loadUsers();
+    } else {
+        const error = await res.text();
+        alert('Ошибка при удалении пользователя: ' + error);
+    }
+}
+
+async function loadDiskUsage() {
+    const container = document.getElementById('disk-usage-container');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/disk/usage');
+        const data = await res.json();
+        
+        container.innerHTML = '';
+        data.forEach(disk => {
+            const color = disk.percent > 90 ? '#ef4444' : (disk.percent > 75 ? '#f59e0b' : '#10b981');
+            container.innerHTML += `
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">${disk.mount_point}</span>
+                        <span style="font-size: 0.8rem; color: #64748b;">${disk.percent}%</span>
+                    </div>
+                    <div style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem;">
+                        <div style="width: ${disk.percent}%; height: 100%; background: ${color}; border-radius: 4px;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b;">
+                        <span>Использовано: ${disk.used}</span>
+                        <span>Всего: ${disk.total}</span>
+                    </div>
+                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.4rem;">Свободно: ${disk.free}</div>
+                </div>
+            `;
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadLogs() {
+    const output = document.getElementById('log-output');
+    if (!output) return;
+
+    try {
+        const res = await fetch('/api/logs');
+        const text = await res.text();
+        
+        // Сравниваем с текущим содержимым, чтобы не скроллить лишний раз
+        if (output.innerText !== text) {
+            output.innerText = text;
+            output.scrollTop = output.scrollHeight;
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function loadAuditLogs() {
+    const table = document.getElementById('audit-table-body');
+    if (!table) return;
+
+    try {
+        const res = await fetch('/api/audit');
+        const data = await res.json();
+        
+        table.innerHTML = '';
+        data.forEach(entry => {
+            let actionColor = '#1e293b';
+            if (entry.action === 'unlink') actionColor = '#ef4444';
+            if (entry.action === 'rename') actionColor = '#f59e0b';
+            if (entry.action === 'mkdir') actionColor = '#10b981';
+
+            table.innerHTML += `
+                <tr>
+                    <td style="font-size: 0.75rem; color: #64748b;">${entry.timestamp}</td>
+                    <td><strong>${entry.user}</strong></td>
+                    <td class="mono" style="font-size: 0.75rem;">${entry.ip}</td>
+                    <td><span class="badge" style="background: ${actionColor}; color: white; padding: 2px 6px;">${entry.action.toUpperCase()}</span></td>
+                    <td style="font-size: 0.8rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${entry.file}">${entry.file}</td>
+                </tr>
+            `;
+        });
+    } catch (e) { console.error(e); }
+}
+
+// Автообновление логов каждые 5 секунд
+setInterval(() => {
+    const logsTab = document.getElementById('tab-logs');
+    if (logsTab && logsTab.style.display === 'block') loadLogs();
+    
+    const auditTab = document.getElementById('tab-audit');
+    if (auditTab && auditTab.style.display === 'block') loadAuditLogs();
+}, 5000);
 
 async function logout() {
     await fetch('/api/logout');

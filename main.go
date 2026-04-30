@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -56,11 +57,30 @@ type ShareInfo struct {
 	Path      string            `json:"path"`
 	Comment   string            `json:"comment"`
 	IsRecycle bool              `json:"is_recycle"`
+	IsAudit   bool              `json:"is_audit"`
+	AuditOpen bool              `json:"audit_open"`
 	Params    map[string]string `json:"params"`
 }
 
 type GlobalConfig struct {
 	Params map[string]string `json:"params"`
+}
+
+type DiskUsage struct {
+	Path       string  `json:"path"`
+	MountPoint string  `json:"mount_point"`
+	Total      string  `json:"total"`
+	Used       string  `json:"used"`
+	Free       string  `json:"free"`
+	Percent    float64 `json:"percent"`
+}
+
+type AuditEntry struct {
+	Timestamp string `json:"timestamp"`
+	User      string `json:"user"`
+	IP        string `json:"ip"`
+	Action    string `json:"action"`
+	File      string `json:"file"`
 }
 
 // getSambaStatus вызывает smbstatus --json
@@ -102,9 +122,11 @@ func getShares(w http.ResponseWriter, r *http.Request) {
 			Params: section.KeysHash(),
 		}
 		
-		// Проверяем наличие корзины в vfs objects
+		// Проверяем наличие корзины и аудита в vfs objects
 		vfs := section.Key("vfs objects").String()
 		share.IsRecycle = strings.Contains(vfs, "recycle")
+		share.IsAudit = strings.Contains(vfs, "full_audit")
+		share.AuditOpen = strings.Contains(section.Key("full_audit:success").String(), "open")
 		
 		shares = append(shares, share)
 	}
@@ -146,20 +168,16 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 		section.Key(k).SetValue(v)
 	}
 
+	vfs := []string{"acl_xattr"}
 	if share.IsRecycle {
-		section.Key("vfs objects").SetValue("acl_xattr recycle")
-		
+		vfs = append(vfs, "recycle")
 		repo := share.Params["recycle:repository"]
 		if repo == "" {
 			repo = ".recycle/%U"
-			if share.Params["guest ok"] == "yes" {
-				repo = ".recycle/guest"
-			}
+			if share.Params["guest ok"] == "yes" { repo = ".recycle/guest" }
 		}
-		
 		exclude := share.Params["recycle:exclude"]
 		if exclude == "" { exclude = "*.tmp *.temp ~$* *.bak Thumbs.db" }
-
 		excludeDir := share.Params["recycle:exclude_dir"]
 		if excludeDir == "" { excludeDir = "/tmp /cache .recycle" }
 
@@ -171,14 +189,28 @@ func saveShare(w http.ResponseWriter, r *http.Request) {
 		section.Key("recycle:exclude").SetValue(exclude)
 		section.Key("recycle:exclude_dir").SetValue(excludeDir)
 	} else {
-		section.Key("vfs objects").SetValue("acl_xattr")
-		// Удаляем все параметры recycle:*
+		// Чистим старые параметры recycle
 		for _, k := range section.KeyStrings() {
-			if strings.HasPrefix(k, "recycle:") {
-				section.DeleteKey(k)
-			}
+			if strings.HasPrefix(k, "recycle:") { section.DeleteKey(k) }
 		}
 	}
+
+	if share.IsAudit {
+		vfs = append(vfs, "full_audit")
+		section.Key("full_audit:prefix").SetValue("%u|%I|%m|%S")
+		success := "mkdir rename unlink"
+		if share.AuditOpen { success += " open" }
+		section.Key("full_audit:success").SetValue(success)
+		section.Key("full_audit:failure").SetValue("none")
+		section.Key("full_audit:facility").SetValue("local7")
+		section.Key("full_audit:priority").SetValue("NOTICE")
+	} else {
+		// Чистим старые параметры audit
+		for _, k := range section.KeyStrings() {
+			if strings.HasPrefix(k, "full_audit:") { section.DeleteKey(k) }
+		}
+	}
+	section.Key("vfs objects").SetValue(strings.Join(vfs, " "))
 
 	if err := cfg.SaveTo(path); err != nil {
 		http.Error(w, "Failed to save smb.conf", 500)
@@ -298,6 +330,279 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// saveUserHandler создает пользователя или меняет пароль
+func saveUserHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	// 1. Проверяем, существует ли пользователь в Samba
+	checkCmd := exec.Command("pdbedit", "-L", "-u", req.Username)
+	err := checkCmd.Run()
+
+	var cmd *exec.Cmd
+	if err != nil {
+		// Пользователя нет, создаем (на Linux требуется существующий системный пользователь)
+		// Для простоты используем smbpasswd -a
+		cmd = exec.Command("smbpasswd", "-a", "-s", req.Username)
+	} else {
+		// Пользователь есть, меняем пароль
+		cmd = exec.Command("smbpasswd", "-s", req.Username)
+	}
+
+	cmd.Stdin = strings.NewReader(req.Password + "\n" + req.Password + "\n")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		// В Mock-режиме (Windows) просто возвращаем успех для UI
+		if os.PathSeparator == '\\' {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Error(w, "Ошибка Samba: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// deleteUserHandler удаляет пользователя Samba
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct{ Username string `json:"username"` }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	cmd := exec.Command("pdbedit", "-x", "-u", req.Username)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		if os.PathSeparator == '\\' {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Error(w, "Ошибка при удалении: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// applyServiceConfig проверяет конфиг и перезапускает Samba
+func applyServiceConfig(w http.ResponseWriter, r *http.Request) {
+	// 1. Проверка testparm
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+
+	testCmd := exec.Command("testparm", "-s", path)
+	if output, err := testCmd.CombinedOutput(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(output)
+		return
+	}
+
+	// 2. Перезапуск (только на Linux)
+	if runtime.GOOS == "linux" {
+		reloadCmd := exec.Command("systemctl", "reload", "smbd")
+		if err := reloadCmd.Run(); err != nil {
+			http.Error(w, "Failed to reload smbd: "+err.Error(), 500)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Settings applied successfully"))
+}
+
+// getServiceStatus возвращает текущий статус smbd
+func getServiceStatus(w http.ResponseWriter, r *http.Request) {
+	if os.PathSeparator == '\\' {
+		// Mock для Windows
+		w.Write([]byte("active"))
+		return
+	}
+
+	cmd := exec.Command("systemctl", "is-active", "smbd")
+	output, _ := cmd.Output()
+	w.Write([]byte(strings.TrimSpace(string(output))))
+}
+
+// controlServiceHandler управляет состоянием сервиса (start, stop, restart)
+func controlServiceHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Action string `json:"action"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	if os.PathSeparator == '\\' {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	validActions := map[string]bool{"start": true, "stop": true, "restart": true}
+	if !validActions[req.Action] {
+		http.Error(w, "Invalid action", 400)
+		return
+	}
+
+	cmd := exec.Command("systemctl", req.Action, "smbd")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		http.Error(w, "Service error: "+string(output), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// getLogsHandler читает последние строки из файла логов
+func getLogsHandler(w http.ResponseWriter, r *http.Request) {
+	logFile := "/var/log/samba/log.smbd"
+	if os.PathSeparator == '\\' {
+		// Mock для разработки
+		w.Write([]byte("[2026/04/30 13:40:00, 0] ../../source3/smbd/server.c:1738(main)\n  smbd version 4.15.13-Ubuntu started.\n  Copyright Andrew Tridgell and the Samba Team 1992-2021\n[2026/04/30 13:42:15, 1] ../../source3/smbd/service.c:1123(make_connection_snum)\n  connect to service data by user admin\n"))
+		return
+	}
+
+	// Читаем последние 200 строк через tail для скорости
+	cmd := exec.Command("tail", "-n", "200", logFile)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		w.Write([]byte("Ошибка чтения логов: " + err.Error() + "\n" + string(output)))
+		return
+	}
+	w.Write(output)
+}
+
+// getDiskUsageHandler возвращает информацию о дисках, на которых лежат шары
+func getDiskUsageHandler(w http.ResponseWriter, r *http.Request) {
+	if os.PathSeparator == '\\' {
+		// Mock для Windows
+		usage := []DiskUsage{
+			{Path: "/data", MountPoint: "/dev/sda1", Total: "1.8T", Used: "450G", Free: "1.3T", Percent: 25},
+			{Path: "/mnt/backup", MountPoint: "/dev/sdb1", Total: "4.0T", Used: "3.2T", Free: "800G", Percent: 80},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(usage)
+		return
+	}
+
+	// 1. Получаем список уникальных путей из конфига
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+	cfg, _ := ini.Load(path)
+	
+	uniquePaths := make(map[string]bool)
+	for _, section := range cfg.Sections() {
+		p := section.Key("path").String()
+		if p != "" {
+			uniquePaths[p] = true
+		}
+	}
+
+	var results []DiskUsage
+	seenMounts := make(map[string]bool)
+
+	for p := range uniquePaths {
+		// Выполняем df -h для конкретного пути
+		cmd := exec.Command("df", "-h", "--output=source,size,used,avail,pcent,target", p)
+		output, err := cmd.Output()
+		if err != nil {
+			continue
+		}
+
+		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+		if len(lines) < 2 {
+			continue
+		}
+
+		// Парсим вторую строку (первая - заголовок)
+		fields := strings.Fields(lines[1])
+		if len(fields) < 6 {
+			continue
+		}
+
+		mount := fields[5]
+		if seenMounts[mount] {
+			continue
+		}
+		seenMounts[mount] = true
+
+		percentStr := strings.TrimSuffix(fields[4], "%")
+		var percent float64
+		fmt.Sscanf(percentStr, "%f", &percent)
+
+		results = append(results, DiskUsage{
+			Path:       p,
+			MountPoint: fields[0],
+			Total:      fields[1],
+			Used:       fields[2],
+			Free:       fields[3],
+			Percent:    percent,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+// getAuditLogsHandler парсит логи аудита из системного лога
+func getAuditLogsHandler(w http.ResponseWriter, r *http.Request) {
+	if os.PathSeparator == '\\' {
+		// Mock для разработки
+		logs := []AuditEntry{
+			{Timestamp: "2026/04/30 13:45:10", User: "admin", IP: "192.168.1.10", Action: "unlink", File: "secret_report.docx"},
+			{Timestamp: "2026/04/30 13:48:22", User: "ivan", IP: "192.168.1.15", Action: "rename", File: "photo.jpg -> profile.jpg"},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(logs)
+		return
+	}
+
+	// Читаем из /var/log/syslog (или /var/log/samba/log.audit если настроено)
+	// Для универсальности ищем в syslog
+	cmd := exec.Command("grep", "smbd_audit", "/var/log/syslog")
+	output, _ := cmd.CombinedOutput()
+	
+	var entries []AuditEntry
+	lines := strings.Split(string(output), "\n")
+	
+	// Берем последние 100 записей
+	start := len(lines) - 100
+	if start < 0 { start = 0 }
+
+	for i := len(lines) - 1; i >= start; i-- {
+		line := lines[i]
+		if !strings.Contains(line, "smbd_audit:") { continue }
+		
+		parts := strings.Split(line, "smbd_audit:")
+		if len(parts) < 2 { continue }
+		
+		msg := strings.TrimSpace(parts[1])
+		data := strings.Split(msg, "|")
+		if len(data) < 7 { continue }
+		
+		entries = append(entries, AuditEntry{
+			Timestamp: strings.Fields(line)[0] + " " + strings.Fields(line)[1] + " " + strings.Fields(line)[2],
+			User:      data[0],
+			IP:        data[1],
+			Action:    data[4],
+			File:      data[6],
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(entries)
+}
+
 // loginHandler проверяет пароль и выдает сессию
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -381,9 +686,17 @@ func main() {
 	http.HandleFunc("/api/shares/delete", authMiddleware(deleteShare))
 	http.HandleFunc("/api/global", authMiddleware(getGlobalConfig))
 	http.HandleFunc("/api/global/save", authMiddleware(saveGlobalConfig))
+	http.HandleFunc("/api/service/apply", authMiddleware(applyServiceConfig))
+	http.HandleFunc("/api/service/status", authMiddleware(getServiceStatus))
+	http.HandleFunc("/api/service/control", authMiddleware(controlServiceHandler))
+	http.HandleFunc("/api/logs", authMiddleware(getLogsHandler))
+	http.HandleFunc("/api/audit", authMiddleware(getAuditLogsHandler))
+	http.HandleFunc("/api/disk/usage", authMiddleware(getDiskUsageHandler))
 	http.HandleFunc("/api/status", authMiddleware(getSambaStatus))
 	http.HandleFunc("/api/shares", authMiddleware(getShares))
 	http.HandleFunc("/api/users", authMiddleware(getUsers))
+	http.HandleFunc("/api/users/save", authMiddleware(saveUserHandler))
+	http.HandleFunc("/api/users/delete", authMiddleware(deleteUserHandler))
 
 	fs := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fs)

@@ -19,6 +19,8 @@
             <div class="nav-item" onclick="showTab('shares', this)">Общие ресурсы</div>
             <div class="nav-item" onclick="showTab('users', this)">Пользователи</div>
             <div class="nav-item" onclick="showTab('global', this)">Настройки сервера</div>
+            <div class="nav-item" onclick="showTab('logs', this)">Логи системы</div>
+            <div class="nav-item" onclick="showTab('audit', this)">Журнал аудита</div>
             <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid #e2e8f0; margin-top: 2rem; padding-top: 1.5rem;">Выход</div>
         </nav>
         <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569;">
@@ -27,13 +29,18 @@
     </aside>
 
     <main>
+        <header id="main-header">
+            <h1 id="page-title">Дашборд</h1>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="btn-apply" class="btn-action" style="background: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; display: none;" onclick="applyChanges()">
+                    Применить изменения
+                </button>
+                <div id="samba-status-badge" class="badge online">SMB: ONLINE</div>
+            </div>
+        </header>
+
         <!-- Вкладка Дашборд -->
         <div id="tab-dashboard" class="tab-content">
-            <header>
-                <h1>Обзор сервера</h1>
-                <div id="status-badge" class="badge online">Статус: Работает</div>
-            </header>
-
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Активные сессии</div>
@@ -47,14 +54,34 @@
                     <div class="stat-label">Версия Samba</div>
                     <div class="stat-value mono" id="samba-version" style="font-size: 1rem;">-</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-label">Статус сервиса (smbd)</div>
+                    <div id="service-status-value" class="stat-value" style="font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="badge" id="service-status-badge">Checking...</span>
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                        <button class="btn-action" onclick="controlService('start')" style="padding: 2px 8px; font-size: 0.7rem;">Start</button>
+                        <button class="btn-action" onclick="controlService('stop')" style="padding: 2px 8px; font-size: 0.7rem;">Stop</button>
+                        <button class="btn-action" onclick="controlService('restart')" style="padding: 2px 8px; font-size: 0.7rem;">Restart</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-panel">
+                <div class="panel-header"><h2>Использование дискового пространства</h2></div>
+                <div id="disk-usage-container" style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <!-- JS populate -->
+                </div>
             </div>
 
             <div class="content-panel">
                 <div class="panel-header"><h2>Текущие подключения</h2></div>
-                <table>
-                    <thead><tr><th>Пользователь</th><th>Удаленный хост</th><th>Протокол</th></tr></thead>
-                    <tbody id="sessions-table-body"></tbody>
-                </table>
+                <div class="table-container" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                    <table>
+                        <thead><tr><th>Пользователь</th><th>Удаленный хост</th><th>Протокол</th></tr></thead>
+                        <tbody id="sessions-table-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -76,14 +103,16 @@
         <div id="tab-users" class="tab-content" style="display:none;">
             <header>
                 <h1>Управление пользователями</h1>
-                <button class="btn-action" style="background: #2563eb; color: white; border: none;">+ Добавить пользователя</button>
+                <button class="btn-action" style="background: #2563eb; color: white; border: none;" onclick="openUserModal()">+ Добавить пользователя</button>
             </header>
             <div class="content-panel">
                 <div class="panel-header"><h2>Зарегистрированные аккаунты</h2></div>
-                <table>
-                    <thead><tr><th>Логин</th><th>UID</th><th>Полное имя</th><th>Действия</th></tr></thead>
-                    <tbody id="users-table-body"></tbody>
-                </table>
+                <div class="table-container" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                    <table>
+                        <thead><tr><th>Логин</th><th>UID</th><th>Полное имя</th><th>Действия</th></tr></thead>
+                        <tbody id="users-table-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -177,6 +206,49 @@
                 </div>
             </form>
         </div>
+        <!-- Вкладка Логи -->
+        <div id="tab-logs" class="tab-content" style="display:none;">
+            <header>
+                <h1>Логи системы (smbd)</h1>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn-action" onclick="loadLogs()" style="background: #3b82f6; color: white; border: none;">Обновить</button>
+                    <button class="btn-action" onclick="document.getElementById('log-output').innerText = ''">Очистить вид</button>
+                </div>
+            </header>
+            <div class="content-panel" style="background: #0f172a; border: none;">
+                <pre id="log-output" style="color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 1.5rem; white-space: pre-wrap; height: 65vh; overflow-y: auto; margin: 0;"></pre>
+            </div>
+        </div>
+
+        <!-- Вкладка Аудит -->
+        <div id="tab-audit" class="tab-content" style="display:none;">
+            <header>
+                <h1>Журнал аудита</h1>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn-action" onclick="loadAuditLogs()" style="background: #3b82f6; color: white; border: none;">Обновить</button>
+                    <button class="btn-action" onclick="document.getElementById('audit-table-body').innerHTML = ''">Очистить вид</button>
+                </div>
+            </header>
+            <div class="content-panel">
+                <div class="panel-header"><h2>Последние действия пользователей</h2></div>
+                <div class="table-container" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Пользователь</th>
+                                <th>IP</th>
+                                <th>Действие</th>
+                                <th>Файл / Объект</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body">
+                            <!-- JS populate -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Модальное окно ресурса -->
@@ -212,6 +284,9 @@
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
                         <input type="checkbox" id="share-recycle"> Корзина (vfs recycle)
                     </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                        <input type="checkbox" id="share-audit"> Аудит действий (full_audit)
+                    </label>
                 </div>
                 <div id="recycle-info" style="display:none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
                     <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 600;">Детальные настройки корзины:</p>
@@ -226,6 +301,25 @@
                     <div class="form-group" style="margin-bottom: 0;">
                         <label style="font-size: 0.7rem;">Исключить папки (Exclude Dir)</label>
                         <input type="text" id="share-recycle-exclude-dir" placeholder="/tmp /cache" style="font-size: 0.8rem; padding: 0.5rem;">
+                    </div>
+                    </div>
+                </div>
+
+                <div id="audit-info" style="display:none; margin-top: 1rem; padding: 1rem; background: #fffbeb; border-radius: 8px; border: 1px dashed #f59e0b;">
+                    <p style="font-size: 0.75rem; color: #b45309; margin-bottom: 0.75rem; font-weight: 600;">События для аудита:</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <input type="checkbox" id="audit-unlink" checked> Удаление (unlink)
+                        </label>
+                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <input type="checkbox" id="audit-rename" checked> Переименование
+                        </label>
+                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <input type="checkbox" id="audit-mkdir" checked> Создание папок
+                        </label>
+                        <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <input type="checkbox" id="audit-open"> Открытие (open)
+                        </label>
                     </div>
                 </div>
 
@@ -253,6 +347,54 @@
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn-action" onclick="closeShareModal()">Отмена</button>
                     <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Пользователь -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="panel-header">
+                <h2 id="user-modal-title">Новый пользователь</h2>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
+            <form id="user-form" style="padding: 1.5rem;">
+                <div class="form-group">
+                    <label>Имя пользователя (Login)</label>
+                    <input type="text" id="user-username" required placeholder="Например: ivan">
+                </div>
+                <div class="form-group">
+                    <label>Пароль Samba</label>
+                    <input type="password" id="user-password" required placeholder="Минимум 6 символов">
+                </div>
+                <p style="font-size: 0.75rem; color: #64748b; margin-top: 1rem;">
+                    💡 Пользователь должен существовать в операционной системе Linux.
+                </p>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn-action" onclick="closeUserModal()">Отмена</button>
+                    <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Пароль -->
+    <div id="password-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="panel-header">
+                <h2>Смена пароля</h2>
+                <span class="close" onclick="closePasswordModal()">&times;</span>
+            </div>
+            <form id="password-form" style="padding: 1.5rem;">
+                <input type="hidden" id="pass-username">
+                <div class="form-group">
+                    <label>Новый пароль для <span id="pass-user-display" style="font-weight:bold; color: #3b82f6;"></span></label>
+                    <input type="password" id="new-password" required>
+                </div>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn-action" onclick="closePasswordModal()">Отмена</button>
+                    <button type="submit" class="btn-action" style="background: #2563eb; color: white; border: none;">Обновить</button>
                 </div>
             </form>
         </div>
