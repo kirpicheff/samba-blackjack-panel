@@ -1,40 +1,52 @@
 #!/bin/bash
-# install.sh для Samba Blackjack Panel
+# install.sh for Samba Blackjack Panel
 
 set -e
 
-echo "🚀 Устанавливаю Samba Blackjack Panel..."
+echo "🚀 Installing Samba Blackjack Panel..."
 
-# 1. Проверка, что запущено от root
+# 1. Check if running as root
 if [ "$EUID" -ne 0 ]; then 
-    echo "❌ Пожалуйста, запустите с sudo: sudo ./install.sh"
+    echo "❌ Please run with sudo: sudo ./install.sh"
     exit 1
 fi
 
-# 2. Установка зависимостей системы
-echo "📦 Установка системных зависимостей (Samba)..."
+# 2. Install system dependencies
+echo "📦 Installing system dependencies (Samba, Git)..."
 apt update
 apt install -y samba samba-common-bin git
 
-# 3. Проверка Go
+# 3. Check for Go
 if ! command -v go &> /dev/null; then
-    echo "🐹 Go не установлен. Устанавливаю golang-go..."
+    echo "🐹 Go not found. Installing golang-go..."
     apt install -y golang-go
 fi
 
-# 4. Клонирование репозитория в /opt
-echo "📥 Клонирование репозитория..."
-rm -rf /opt/samba-blackjack-panel
-git clone https://github.com/kirpicheff/samba-blackjack-panel.git /opt/samba-blackjack-panel
+# 4. Clone or update repository
+INSTALL_DIR="/opt/samba-blackjack-panel"
 
-# 5. Сборка бинарника
-echo "🛠 Сборка приложения..."
-cd /opt/samba-blackjack-panel
+if [ -d "$INSTALL_DIR" ]; then
+    echo "🔄 Existing version detected. Updating..."
+    # Stop service before building
+    systemctl stop samba-blackjack.service || true
+    cd "$INSTALL_DIR"
+    
+    # Reset local changes and pull latest code
+    git fetch --all
+    git reset --hard origin/main
+else
+    echo "📥 Cloning repository..."
+    git clone https://github.com/kirpicheff/samba-blackjack-panel.git "$INSTALL_DIR"
+    cd "$INSTALL_DIR"
+fi
+
+# 5. Build binary
+echo "🛠 Building application..."
 go mod tidy
 go build -o samba-blackjack-panel .
 
-# 6. Создание systemd сервиса
-echo "⚙️ Создание системной службы..."
+# 6. Create systemd service
+echo "⚙️ Creating system service..."
 cat > /etc/systemd/system/samba-blackjack.service <<EOF
 [Unit]
 Description=Samba Blackjack Panel
@@ -52,20 +64,20 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# 7. Запуск сервиса
-echo "🔄 Запуск службы..."
+# 7. Start service
+echo "🔄 Starting service..."
 systemctl daemon-reload
 systemctl enable samba-blackjack.service
 systemctl start samba-blackjack.service
 
-# 8. Финальное сообщение
+# 8. Final message
 echo ""
 echo "===================================================="
-echo "✅ Установка успешно завершена!"
-echo "🌐 Панель доступна по адресу: http://$(hostname -I | awk '{print $1}'):8888"
-echo "🔐 Логин: admin"
-echo "🔑 Пароль: admin"
+echo "✅ Installation successfully completed!"
+echo "🌐 Panel available at: http://$(hostname -I | awk '{print $1}'):8888"
+echo "🔐 Default Login: admin"
+echo "🔑 Default Password: admin"
 echo ""
-echo "💡 Рекомендуется сменить пароль сразу после входа."
-echo "📜 Логи сервиса: journalctl -u samba-blackjack -f"
+echo "💡 It is recommended to change the password after login."
+echo "📜 Service logs: journalctl -u samba-blackjack -f"
 echo "===================================================="

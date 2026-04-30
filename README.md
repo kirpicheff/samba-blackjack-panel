@@ -1,4 +1,5 @@
 # Samba Blackjack Panel
+🌐 [English](README.en.md) | [中文](README.zh.md) | [Español](README.es.md) | [Русский](README.md)
 
 Легковесная панель управления сервером Samba на Go.
 

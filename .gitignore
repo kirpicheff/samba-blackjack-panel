@@ -6,8 +6,9 @@
 *.dylib
 bin/
 admins.json
-# Dev configs
-# smb.conf.dev # Оставим для примера, если нужно
+shares_automation.json
+config_backups/
+samba-blackjack-panel
 
 # OS files
 .DS_Store
