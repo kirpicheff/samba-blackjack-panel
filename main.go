@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -646,6 +647,66 @@ func getAuditLogsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(entries)
 }
 
+// clearRecycleBinsHandler находит и очищает папки корзин во всех шарах
+func clearRecycleBinsHandler(w http.ResponseWriter, r *http.Request) {
+	path := smbConfPath
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = devSmbConfPath
+	}
+	cfg, _ := ini.Load(path)
+
+	type CleanupResult struct {
+		Share string `json:"share"`
+		Path  string `json:"path"`
+		Error string `json:"error,omitempty"`
+	}
+	var results []CleanupResult
+
+	for _, section := range cfg.Sections() {
+		vfs := section.Key("vfs objects").String()
+		if !strings.Contains(vfs, "recycle") {
+			continue
+		}
+
+		sharePath := section.Key("path").String()
+		if sharePath == "" {
+			continue
+		}
+
+		// Определяем репозиторий корзины (по умолчанию .recycle)
+		repo := section.Key("recycle:repository").String()
+		if repo == "" {
+			repo = ".recycle"
+		}
+		
+		// Очищаем от макросов Samba (%U, %u и т.д.), берем базовую папку
+		repoBase := strings.Split(repo, "/")[0]
+		fullRepoPath := filepath.Join(sharePath, repoBase)
+
+		if os.PathSeparator == '\\' {
+			// Mock для Windows
+			results = append(results, CleanupResult{Share: section.Name(), Path: fullRepoPath})
+			continue
+		}
+
+		// Проверяем существование
+		if _, err := os.Stat(fullRepoPath); os.IsNotExist(err) {
+			continue
+		}
+
+		// Очищаем содержимое
+		cmd := exec.Command("sh", "-c", fmt.Sprintf("rm -rf %s/*", fullRepoPath))
+		if err := cmd.Run(); err != nil {
+			results = append(results, CleanupResult{Share: section.Name(), Path: fullRepoPath, Error: err.Error()})
+		} else {
+			results = append(results, CleanupResult{Share: section.Name(), Path: fullRepoPath})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
 // loginHandler проверяет пароль и выдает сессию
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -734,6 +795,7 @@ func main() {
 	http.HandleFunc("/api/service/control", authMiddleware(controlServiceHandler))
 	http.HandleFunc("/api/logs", authMiddleware(getLogsHandler))
 	http.HandleFunc("/api/audit", authMiddleware(getAuditLogsHandler))
+	http.HandleFunc("/api/maintenance/clear-recycle", authMiddleware(clearRecycleBinsHandler))
 	http.HandleFunc("/api/disk/usage", authMiddleware(getDiskUsageHandler))
 	http.HandleFunc("/api/status", authMiddleware(getSambaStatus))
 	http.HandleFunc("/api/shares", authMiddleware(getShares))

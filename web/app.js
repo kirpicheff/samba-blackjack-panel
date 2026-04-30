@@ -470,6 +470,26 @@ setInterval(() => {
     if (auditTab && auditTab.style.display === 'block') loadAuditLogs();
 }, 5000);
 
+async function clearRecycleBins() {
+    if (!confirm('Вы уверены, что хотите безвозвратно удалить все файлы из сетевых корзин всех ресурсов?')) return;
+
+    try {
+        const res = await fetch('/api/maintenance/clear-recycle', { method: 'POST' });
+        const results = await res.json();
+        
+        const successCount = results.filter(r => !r.error).length;
+        const failCount = results.filter(r => r.error).length;
+        
+        let message = `Очистка завершена.\nУспешно очищено корзин: ${successCount}`;
+        if (failCount > 0) message += `\nОшибок: ${failCount}`;
+        
+        alert(message);
+        loadDiskUsage(); // Обновляем инфо о дисках
+    } catch (e) {
+        alert('Ошибка при очистке: ' + e.message);
+    }
+}
+
 async function logout() {
     await fetch('/api/logout');
     window.location.href = '/login.html';

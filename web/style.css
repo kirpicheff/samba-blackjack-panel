@@ -217,11 +217,14 @@ tr:hover td {
 
 .modal-content {
     background-color: #fff;
-    margin: 5% auto;
-    width: 500px;
+    margin: 3vh auto;
+    width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
     border-radius: 12px;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow-y: auto;
     animation: slideDown 0.3s ease-out;
 }
 

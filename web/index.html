@@ -60,6 +60,18 @@
                     <div class="stat-value mono" id="samba-version" style="font-size: 1rem;">-</div>
                 </div>
             </div>
+            
+            <div class="content-panel" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
+                <div class="panel-header" style="border: none;">
+                    <div>
+                        <h2 style="color: #b45309;">Обслуживание системы</h2>
+                        <p style="font-size: 0.75rem; color: #d97706; margin-top: 2px;">Очистка временных файлов и всех сетевых корзин</p>
+                    </div>
+                    <button class="btn-action" onclick="clearRecycleBins()" style="background: #f59e0b; color: white; border: none; padding: 0.6rem 1.2rem;">
+                        Очистить все корзины
+                    </button>
+                </div>
+            </div>
 
             <div class="content-panel">
                 <div class="panel-header"><h2>Использование дискового пространства</h2></div>
@@ -295,7 +307,6 @@
                     <div class="form-group" style="margin-bottom: 0;">
                         <label style="font-size: 0.7rem;">Исключить папки (Exclude Dir)</label>
                         <input type="text" id="share-recycle-exclude-dir" placeholder="/tmp /cache" style="font-size: 0.8rem; padding: 0.5rem;">
-                    </div>
                     </div>
                 </div>
 
