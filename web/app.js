@@ -120,11 +120,19 @@ async function updateStatus() {
         }
         const data = await response.json();
 
-        // Извлекаем сессии из вложенной структуры smbstatus --json
-        // Обычно это data.processes.session (массив)
-        const sessions = (data.processes && data.processes.session) ? data.processes.session : [];
-        const openFiles = (data.locks && data.locks.sharemode) ? data.locks.sharemode : [];
-        const version = (data.processes && data.processes.Samba_version) ? data.processes.Samba_version : 'Samba Server';
+        // Универсальное извлечение сессий
+        let sessions = [];
+        if (data.sessions) {
+            sessions = Array.isArray(data.sessions) ? data.sessions : Object.values(data.sessions);
+        } else if (data.processes && data.processes.session) {
+            sessions = Array.isArray(data.processes.session) ? data.processes.session : [data.processes.session];
+        }
+
+        const openFiles = (data.open_files) ? 
+            (Array.isArray(data.open_files) ? data.open_files : Object.values(data.open_files)) : 
+            ((data.locks && data.locks.sharemode) ? data.locks.sharemode : []);
+            
+        const version = data.version || (data.processes && data.processes.Samba_version) || 'Samba Server';
 
         const sessionEl = document.getElementById('session-count');
         const fileEl = document.getElementById('file-count');
@@ -138,10 +146,12 @@ async function updateStatus() {
         if (sessionTable) {
             sessionTable.innerHTML = '';
             sessions.forEach(s => {
-                // smbstatus --json использует заглавные буквы: Username, Machine, Protocol
-                const user = s.Username || s.user || 'nobody';
-                const machine = s.Machine || s.remote_machine || '-';
-                const protocol = s.Protocol || s.protocol_version || '-';
+                // Пытаемся найти пользователя под разными именами
+                const user = s.Username || s.user || s.username || 'nobody';
+                // Пытаемся найти хост
+                const machine = s.Machine || s.remote_machine || s.machine || s.hostname || '-';
+                // Пытаемся найти протокол
+                const protocol = s.Protocol || s.protocol_version || s.protocol || '-';
                 
                 sessionTable.innerHTML += `<tr>
                     <td><strong>${user}</strong></td>
