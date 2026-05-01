@@ -120,27 +120,45 @@ async function updateStatus() {
         }
         const data = await response.json();
 
+        // Извлекаем сессии из вложенной структуры smbstatus --json
+        // Обычно это data.processes.session (массив)
+        const sessions = (data.processes && data.processes.session) ? data.processes.session : [];
+        const openFiles = (data.locks && data.locks.sharemode) ? data.locks.sharemode : [];
+        const version = (data.processes && data.processes.Samba_version) ? data.processes.Samba_version : 'Samba Server';
+
         const sessionEl = document.getElementById('session-count');
         const fileEl = document.getElementById('file-count');
         const versionEl = document.getElementById('samba-version');
         
-        if (sessionEl) sessionEl.innerText = Object.keys(data.sessions || {}).length;
-        if (fileEl) fileEl.innerText = Object.keys(data.open_files || {}).length;
-        if (versionEl) versionEl.innerText = data.version || 'Samba Server';
+        if (sessionEl) sessionEl.innerText = sessions.length;
+        if (fileEl) fileEl.innerText = openFiles.length;
+        if (versionEl) versionEl.innerText = version;
 
         const sessionTable = document.getElementById('sessions-table-body');
         if (sessionTable) {
             sessionTable.innerHTML = '';
-            for (const id in data.sessions) {
-                const s = data.sessions[id];
-                sessionTable.innerHTML += `<tr><td><strong>${s.user}</strong></td><td>${s.remote_machine}</td><td><span class="mono">${s.protocol_version}</span></td></tr>`;
+            sessions.forEach(s => {
+                // smbstatus --json использует заглавные буквы: Username, Machine, Protocol
+                const user = s.Username || s.user || 'nobody';
+                const machine = s.Machine || s.remote_machine || '-';
+                const protocol = s.Protocol || s.protocol_version || '-';
+                
+                sessionTable.innerHTML += `<tr>
+                    <td><strong>${user}</strong></td>
+                    <td>${machine}</td>
+                    <td><span class="mono">${protocol}</span></td>
+                </tr>`;
+            });
+
+            if (sessions.length === 0) {
+                sessionTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 2rem; opacity: 0.5;">${i18n('label_no_sessions') || 'No active sessions'}</td></tr>`;
             }
         }
         
         updateServiceStatus();
         loadDiskUsage();
         loadDiscoveryStatus();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('Update status error:', e); }
 }
 
 async function updateServiceStatus() {
