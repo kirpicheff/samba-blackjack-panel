@@ -131,10 +131,14 @@
             </div>
 
             <div class="content-panel">
-                <div class="panel-header">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h2><i data-lucide="users" style="width: 18px; vertical-align: middle; margin-right: 8px;"></i> <span data-i18n="sessions_title">Текущие подключения</span></h2>
+                    <div class="search-box" style="width: 250px; margin-bottom: 0;">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="sessions-search" placeholder="Поиск..." onkeyup="filterSessions()">
+                    </div>
                 </div>
-                <div class="table-container">
+                <div class="table-container" style="max-height: 500px; overflow-y: auto; border-radius: 0 0 20px 20px;">
                     <table>
                         <thead>
                             <tr>

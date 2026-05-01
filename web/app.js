@@ -24,6 +24,8 @@ window.fetch = function () {
 let i18n_data = {};
 let currentLang = localStorage.getItem('panel_lang') || 'ru';
 let currentFMPath = '/';
+let allSessions = [];
+let allOpenFiles = [];
 
 async function loadLanguage(lang) {
     if (i18n_data[lang]) return;
@@ -178,34 +180,53 @@ async function updateStatus() {
         if (fileEl) fileEl.innerText = openFilesCount;
         if (versionEl) versionEl.innerText = version;
 
-        const sessionTable = document.getElementById('sessions-table-body');
-        if (sessionTable) {
-            sessionTable.innerHTML = '';
-            sessions.forEach(s => {
-                try {
-                    const user = s.Username || s.user || s.username || 'nobody';
-                    const machine = s.Machine || s.remote_machine || s.machine || s.hostname || '-';
-                    const protocol = s.Protocol || s.protocol_version || s.protocol || '-';
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${user}</strong></td>
-                        <td class="mono" style="font-size: 0.8rem;">${machine}</td>
-                        <td><span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none;">${protocol}</span></td>
-                    `;
-                    sessionTable.appendChild(tr);
-                } catch (err) { console.error('Render session row error:', err); }
-            });
-
-            if (sessions.length === 0) {
-                sessionTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 2rem; opacity: 0.5;">${i18n('label_no_sessions') || 'No active sessions'}</td></tr>`;
-            }
-        }
+        allSessions = sessions;
+        renderSessions();
 
         updateServiceStatus();
         loadDiskUsage();
         loadDiscoveryStatus();
     } catch (e) { console.error('Update status error:', e); }
+}
+
+function filterSessions() {
+    renderSessions();
+}
+
+function renderSessions() {
+    const sessionTable = document.getElementById('sessions-table-body');
+    if (!sessionTable) return;
+
+    const query = (document.getElementById('sessions-search')?.value || '').toLowerCase();
+    
+    const filtered = allSessions.filter(s => {
+        const user = String(s.Username || s.user || s.username || '').toLowerCase();
+        const machine = String(s.Machine || s.remote_machine || s.machine || s.hostname || '').toLowerCase();
+        return user.includes(query) || machine.includes(query);
+    });
+
+    sessionTable.innerHTML = '';
+    filtered.forEach(s => {
+        try {
+            const user = s.Username || s.user || s.username || 'nobody';
+            const machine = s.Machine || s.remote_machine || s.machine || s.hostname || '-';
+            const protocol = s.Protocol || s.protocol_version || s.protocol || '-';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${user}</strong></td>
+                <td class="mono" style="font-size: 0.8rem;">${machine}</td>
+                <td><span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none;">${protocol}</span></td>
+            `;
+            sessionTable.appendChild(tr);
+        } catch (err) { console.error('Render session row error:', err); }
+    });
+
+    if (filtered.length === 0 && allSessions.length > 0) {
+        sessionTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 2rem; opacity: 0.5;">Ничего не найдено</td></tr>`;
+    } else if (allSessions.length === 0) {
+        sessionTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 2rem; opacity: 0.5;">${i18n('label_no_sessions') || 'No active sessions'}</td></tr>`;
+    }
 }
 
 async function updateServiceStatus() {
@@ -1670,8 +1691,6 @@ async function saveQuota() {
         }
     } catch (e) { console.error(e); }
 }
-
-let allOpenFiles = [];
 
 async function loadOpenFiles() {
     const container = document.getElementById('openfiles-table-body');
