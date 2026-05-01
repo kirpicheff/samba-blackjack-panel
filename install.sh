@@ -12,9 +12,9 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # 2. Install system dependencies
-echo "📦 Installing system dependencies (Samba, Git, Quota)..."
+echo "📦 Installing system dependencies (Samba, Git, Quota, Discovery)..."
 apt update
-apt install -y samba samba-common-bin git quota
+apt install -y samba samba-common-bin git quota avahi-daemon wsdd
 
 # 3. Check for Go
 if ! command -v go &> /dev/null; then
@@ -64,11 +64,11 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# 7. Start service
-echo "🔄 Starting service..."
+# 7. Start services
+echo "🔄 Starting services..."
 systemctl daemon-reload
-systemctl enable samba-blackjack.service
-systemctl start samba-blackjack.service
+systemctl enable samba-blackjack.service avahi-daemon wsdd
+systemctl start samba-blackjack.service avahi-daemon wsdd
 
 # 8. Final message
 echo ""
