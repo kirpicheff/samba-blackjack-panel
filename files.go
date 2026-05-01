@@ -20,6 +20,9 @@ type FileItem struct {
 
 // isPathSafe проверяет, находится ли путь внутри одной из разрешенных директорий (шар)
 func isPathSafe(path string) bool {
+	if path == "" {
+		return false
+	}
 	cleanPath, err := filepath.Abs(filepath.Clean(path))
 	if err != nil {
 		return false
@@ -31,7 +34,10 @@ func isPathSafe(path string) bool {
 		if err != nil {
 			continue
 		}
-		if strings.HasPrefix(cleanPath, absAllowed) {
+
+		// Путь должен быть либо самой шарой, либо находиться внутри неё.
+		// Добавляем разделитель пути к префиксу, чтобы избежать частичного совпадения имен папок
+		if cleanPath == absAllowed || strings.HasPrefix(cleanPath, absAllowed+string(os.PathSeparator)) {
 			return true
 		}
 	}
@@ -41,8 +47,28 @@ func isPathSafe(path string) bool {
 // listContentHandler возвращает список файлов и папок по указанному пути
 func listContentHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
-	if path == "" {
-		http.Error(w, "Путь не указан", 400)
+	if path == "" || path == "/" || path == "\\" {
+		allowedPaths := getAllSharePaths()
+		items := []FileItem{}
+		for _, p := range allowedPaths {
+			info, err := os.Stat(p)
+			if err != nil {
+				continue
+			}
+			// Возвращаем путь как имя папки для виртуального корня
+			// Очищаем путь, чтобы он выглядел аккуратно
+			name := strings.TrimPrefix(filepath.Clean(p), string(os.PathSeparator))
+			
+			items = append(items, FileItem{
+				Name:    name,
+				IsDir:   true,
+				Size:    0,
+				ModTime: info.ModTime().Format("2006-01-02 15:04:05"),
+				Mode:    fmt.Sprintf("%#o", info.Mode().Perm()),
+			})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(items)
 		return
 	}
 

@@ -3,6 +3,8 @@
 
 Lightweight Samba server management panel written in Go.
 
+📚 **[Full Documentation (RU/EN)](DOCUMENTATION.md)** | ❓ **[Frequently Asked Questions (FAQ)](FAQ.md)**
+
 ## 🚀 Quick Install (Ubuntu/Debian)
 
 The easiest way to install the panel as a system service:
