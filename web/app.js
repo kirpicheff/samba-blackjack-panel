@@ -1,11 +1,11 @@
 // Глобальный перехватчик fetch для защиты от CSRF (Double Submit Cookie)
 const originalFetch = window.fetch;
-window.fetch = function() {
+window.fetch = function () {
     let [resource, config] = arguments;
     if (typeof resource === 'string' && resource.startsWith('/api/')) {
         config = config || {};
         config.headers = config.headers || {};
-        
+
         const csrfToken = document.cookie.split('; ')
             .find(row => row.startsWith('csrf_token='))
             ?.split('=')[1];
@@ -50,7 +50,7 @@ async function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('panel_lang', lang);
     updateStaticTranslations();
-    
+
     // Подсветка кнопок переключения языка
     document.querySelectorAll('.lang-btn').forEach(btn => {
         const isMatch = btn.getAttribute('onclick').includes(`'${lang}'`);
@@ -96,10 +96,10 @@ function showTab(tabName, element) {
     if (element) element.classList.add('active');
 
     // Update header title
-    const titles = { 
-        'dashboard': i18n('nav_dashboard'), 
-        'shares': i18n('nav_shares'), 
-        'users': i18n('nav_users'), 
+    const titles = {
+        'dashboard': i18n('nav_dashboard'),
+        'shares': i18n('nav_shares'),
+        'users': i18n('nav_users'),
         'groups': i18n('nav_groups'),
         'global': i18n('nav_global'),
         'logs': i18n('nav_logs'),
@@ -109,7 +109,7 @@ function showTab(tabName, element) {
     };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.innerText = titles[tabName] || 'Samba Panel';
-    
+
     const pageSubtitle = document.getElementById('page-subtitle');
     if (pageSubtitle && tabName === 'dashboard') {
         pageSubtitle.innerText = i18n('page_dashboard_subtitle');
@@ -154,48 +154,54 @@ async function updateStatus() {
             }
         } catch (e) { console.warn('Sessions parse error:', e); }
 
-        let openFiles = [];
+        let openFilesCount = 0;
         try {
-            if (data.open_files) {
-                openFiles = Array.isArray(data.open_files) ? data.open_files : Object.values(data.open_files);
+            if (data.open_files && !Array.isArray(data.open_files)) {
+                Object.values(data.open_files).forEach(f => {
+                    if (f.opens) openFilesCount += Object.keys(f.opens).length;
+                });
+            } else if (data.open_files) {
+                openFilesCount = Array.isArray(data.open_files) ? data.open_files.length : Object.keys(data.open_files).length;
             } else if (data.locks && data.locks.sharemode) {
-                openFiles = Array.isArray(data.locks.sharemode) ? data.locks.sharemode : [data.locks.sharemode];
+                const sharemode = data.locks.sharemode;
+                openFilesCount = Array.isArray(sharemode) ? sharemode.length : 1;
             }
-        } catch (e) { console.warn('Open files parse error:', e); }
-            
+        } catch (e) { console.warn('Open files count error:', e); }
+
         const version = data.version || (data.processes && data.processes.Samba_version) || 'Samba Server';
 
         const sessionEl = document.getElementById('session-count');
         const fileEl = document.getElementById('file-count');
         const versionEl = document.getElementById('samba-version');
-        
+
         if (sessionEl) sessionEl.innerText = sessions.length;
-        if (fileEl) fileEl.innerText = openFiles.length;
+        if (fileEl) fileEl.innerText = openFilesCount;
         if (versionEl) versionEl.innerText = version;
 
         const sessionTable = document.getElementById('sessions-table-body');
         if (sessionTable) {
             sessionTable.innerHTML = '';
             sessions.forEach(s => {
-                // Пытаемся найти пользователя под разными именами
-                const user = s.Username || s.user || s.username || 'nobody';
-                // Пытаемся найти хост
-                const machine = s.Machine || s.remote_machine || s.machine || s.hostname || '-';
-                // Пытаемся найти протокол
-                const protocol = s.Protocol || s.protocol_version || s.protocol || '-';
-                
-                sessionTable.innerHTML += `<tr>
-                    <td><strong>${user}</strong></td>
-                    <td>${machine}</td>
-                    <td><span class="mono">${protocol}</span></td>
-                </tr>`;
+                try {
+                    const user = s.Username || s.user || s.username || 'nobody';
+                    const machine = s.Machine || s.remote_machine || s.machine || s.hostname || '-';
+                    const protocol = s.Protocol || s.protocol_version || s.protocol || '-';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${user}</strong></td>
+                        <td class="mono" style="font-size: 0.8rem;">${machine}</td>
+                        <td><span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none;">${protocol}</span></td>
+                    `;
+                    sessionTable.appendChild(tr);
+                } catch (err) { console.error('Render session row error:', err); }
             });
 
             if (sessions.length === 0) {
                 sessionTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 2rem; opacity: 0.5;">${i18n('label_no_sessions') || 'No active sessions'}</td></tr>`;
             }
         }
-        
+
         updateServiceStatus();
         loadDiskUsage();
         loadDiscoveryStatus();
@@ -207,7 +213,7 @@ async function updateServiceStatus() {
         const res = await fetch('/api/service/status');
         const status = await res.text();
         const topBadge = document.getElementById('samba-status-badge');
-        
+
         if (topBadge) {
             if (status === 'active') {
                 topBadge.innerHTML = `<span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span> ${i18n('smb_online')}`;
@@ -222,7 +228,7 @@ async function updateServiceStatus() {
 
 async function controlService(action) {
     if (!confirm(i18n('confirm_service_action', { action }))) return;
-    
+
     try {
         const res = await fetch('/api/service/control', {
             method: 'POST',
@@ -246,12 +252,12 @@ async function loadShares() {
         const table = document.getElementById('shares-table-body');
         if (!table) return;
         table.innerHTML = '';
-        
+
         data.forEach(share => {
-            const recycleStatus = share.is_recycle ? 
-                `<span class="badge online" style="font-size:0.6rem">${i18n('recycle_active')}</span>` : 
+            const recycleStatus = share.is_recycle ?
+                `<span class="badge online" style="font-size:0.6rem">${i18n('recycle_active')}</span>` :
                 `<span class="badge" style="color:#64748b; font-size:0.6rem">${i18n('recycle_off')}</span>`;
-            
+
             table.innerHTML += `<tr>
                 <td><strong>${share.name}</strong></td>
                 <td><span class="mono">${share.path}</span></td>
@@ -269,17 +275,17 @@ async function loadShares() {
 function openShareModal(share = null) {
     const modal = document.getElementById('share-modal');
     if (!modal) return;
-    
+
     const title = document.getElementById('modal-title');
     if (title) title.innerText = share ? i18n('modal_share_title_edit') : i18n('modal_share_title_new');
-    
+
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
 
     setVal('share-name', share ? share.name : '');
     const nameEl = document.getElementById('share-name');
     if (nameEl) nameEl.readOnly = !!share;
-    
+
     setVal('share-path', share ? share.path : '');
     setVal('share-comment', share ? (share.params.comment || '') : '');
     setCheck('share-recycle', share ? share.is_recycle : false);
@@ -334,15 +340,15 @@ function openShareModal(share = null) {
 function showModalTab(tabId) {
     document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.m-tab-content').forEach(c => c.style.display = 'none');
-    
+
     const tabs = document.querySelectorAll('.modal-tab');
-    if (tabId === 'general') { if(tabs[0]) tabs[0].classList.add('active'); const el = document.getElementById('m-tab-general'); if(el) el.style.display = 'block'; }
-    if (tabId === 'access') { if(tabs[1]) tabs[1].classList.add('active'); const el = document.getElementById('m-tab-access'); if(el) el.style.display = 'block'; }
-    if (tabId === 'automation-tab') { if(tabs[2]) tabs[2].classList.add('active'); const el = document.getElementById('m-tab-automation-tab'); if(el) el.style.display = 'block'; }
-    if (tabId === 'permissions') { 
-        if(tabs[3]) tabs[3].classList.add('active'); 
-        const el = document.getElementById('m-tab-permissions'); 
-        if(el) el.style.display = 'block';
+    if (tabId === 'general') { if (tabs[0]) tabs[0].classList.add('active'); const el = document.getElementById('m-tab-general'); if (el) el.style.display = 'block'; }
+    if (tabId === 'access') { if (tabs[1]) tabs[1].classList.add('active'); const el = document.getElementById('m-tab-access'); if (el) el.style.display = 'block'; }
+    if (tabId === 'automation-tab') { if (tabs[2]) tabs[2].classList.add('active'); const el = document.getElementById('m-tab-automation-tab'); if (el) el.style.display = 'block'; }
+    if (tabId === 'permissions') {
+        if (tabs[3]) tabs[3].classList.add('active');
+        const el = document.getElementById('m-tab-permissions');
+        if (el) el.style.display = 'block';
         const path = document.getElementById('share-path').value;
         if (path) {
             fillUserGroupSelects().then(() => loadPathPermissions(path));
@@ -390,7 +396,7 @@ async function loadPathPermissions(path) {
         const res = await fetch(`/api/fs/permissions?path=${encodeURIComponent(path)}`);
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        
+
         const setSelectVal = (id, val) => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -407,11 +413,11 @@ async function loadPathPermissions(path) {
 
         setSelectVal('fs-owner', data.owner);
         setSelectVal('fs-group', data.group);
-        
+
         const modeEl = document.getElementById('fs-mode');
         if (modeEl) modeEl.value = data.mode;
         updatePermChecks(data.mode);
-        
+
         if (aclOutput) aclOutput.innerText = data.acls || i18n('fs_acl_empty');
     } catch (e) {
         if (aclOutput) aclOutput.innerText = i18n('fs_acl_error') + ': ' + e.message;
@@ -433,7 +439,7 @@ function updatePermChecks(mode) {
         if (type === 'u') val = u;
         else if (type === 'g') val = g;
         else if (type === 'o') val = o;
-        
+
         cb.checked = (val & bit) !== 0;
     });
 }
@@ -494,7 +500,7 @@ async function savePathPermissions() {
 function toggleRecycleInfo() {
     const recycleEl = document.getElementById('share-recycle');
     if (!recycleEl) return;
-    
+
     const isChecked = recycleEl.checked;
     const guestEl = document.getElementById('share-guest');
     const isGuest = guestEl ? guestEl.checked : false;
@@ -660,7 +666,7 @@ const initEvents = () => {
 
         if (res.ok) alert(i18n('save_success'));
     });
-    
+
     setLanguage(currentLang);
 };
 
@@ -677,7 +683,7 @@ function closeShareModal() {
 
 async function deleteShare(name) {
     if (!confirm(i18n('confirm_delete_share', { name }))) return;
-    
+
     const res = await fetch('/api/shares/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -702,7 +708,7 @@ async function loadGlobalConfig() {
 async function applyChanges() {
     const btn = document.getElementById('btn-apply');
     if (!btn) return;
-    
+
     const originalText = btn.innerText;
     btn.innerText = i18n('btn_applying');
     btn.disabled = true;
@@ -733,7 +739,7 @@ async function loadUsers() {
         const table = document.getElementById('users-table-body');
         if (!table) return;
         table.innerHTML = '';
-        
+
         data.forEach(user => {
             table.innerHTML += `<tr>
                 <td><strong>${user.username}</strong></td>
@@ -802,9 +808,9 @@ async function loadGroups() {
         const table = document.getElementById('groups-table-body');
         if (!table) return;
         table.innerHTML = '';
-        
+
         groups.forEach(group => {
-            const members = group.members && group.members.length > 0 
+            const members = group.members && group.members.length > 0
                 ? group.members.map(m => `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border:none; margin: 2px;">${m}</span>`).join('')
                 : `<span style="color: #94a3b8; font-size: 0.8rem;">${i18n('label_no_members')}</span>`;
 
@@ -947,11 +953,11 @@ async function loadDiskUsage() {
     try {
         const res = await fetch('/api/disk/usage');
         const data = await res.json();
-        
+
         container.innerHTML = '';
         data.forEach(disk => {
             const color = disk.percent > 90 ? 'var(--status-offline)' : (disk.percent > 75 ? '#f59e0b' : 'var(--status-online)');
-            const sharesList = disk.shares && disk.shares.length > 0 ? 
+            const sharesList = disk.shares && disk.shares.length > 0 ?
                 `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.8rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">
                     <strong>${i18n('disk_resources')}:</strong> ${disk.shares.join(', ')}
                  </div>` : '';
@@ -986,22 +992,22 @@ async function loadLogs() {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/ws/logs`;
-    
+
     if (logSocket) logSocket.close();
-    
+
     logSocket = new WebSocket(wsUrl);
-    
+
     // При первом подключении загружаем текущий хвост лога
     try {
         const initialRes = await fetch('/api/logs');
         output.innerText = await initialRes.text();
         output.scrollTop = output.scrollHeight;
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
 
     logSocket.onmessage = (event) => {
         output.innerText += event.data;
         output.scrollTop = output.scrollHeight;
-        
+
         // Ограничиваем количество строк (например, последние 1000)
         const lines = output.innerText.split('\n');
         if (lines.length > 1000) {
@@ -1013,7 +1019,7 @@ async function loadLogs() {
         console.log('Log WebSocket closed');
         logSocket = null;
     };
-    
+
     logSocket.onerror = (err) => {
         console.error('Log WebSocket error', err);
         logSocket = null;
@@ -1027,7 +1033,7 @@ async function loadAuditLogs() {
     try {
         const res = await fetch('/api/audit');
         const data = await res.json();
-        
+
         table.innerHTML = '';
         data.forEach(entry => {
             let actionColor = 'var(--text-primary)';
@@ -1062,13 +1068,13 @@ async function clearRecycleBins() {
     try {
         const res = await fetch('/api/maintenance/clear-recycle', { method: 'POST' });
         const results = await res.json();
-        
+
         const successCount = results.filter(r => !r.error).length;
         const failCount = results.filter(r => r.error).length;
-        
+
         let message = i18n('msg_clear_recycle_success', { count: successCount });
         if (failCount > 0) message += `\n${i18n('msg_errors')}: ${failCount}`;
-        
+
         alert(message);
         loadDiskUsage();
     } catch (e) {
@@ -1098,7 +1104,7 @@ async function saveAutomationSettings() {
     const rDays = document.getElementById('auto-recycle-days');
     const sInt = document.getElementById('auto-snap-interval');
     const sKeep = document.getElementById('auto-snap-keep');
-    
+
     const s = {
         recycle_days: rDays ? parseInt(rDays.value) : 0,
         snapshot_interval: sInt ? sInt.value : 'none',
@@ -1116,11 +1122,11 @@ async function saveAutomationSettings() {
 function showSettingsSection(sectionId, element) {
     document.querySelectorAll('.settings-section').forEach(s => s.style.display = 'none');
     document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
-    
+
     const section = document.getElementById(`sec-${sectionId}`);
     if (section) section.style.display = 'block';
     if (element) element.classList.add('active');
-    
+
     if (sectionId === 'ad') checkADStatus();
     if (sectionId === 'discovery') loadDiscoveryManagement();
     if (sectionId === 'panel-admins') loadPanelAdmins();
@@ -1139,7 +1145,7 @@ async function loadDiscoveryStatus() {
             const statusClass = s.active ? 'online' : 'offline';
             const statusText = s.active ? i18n('status_active') : i18n('status_stopped');
             const label = s.name === 'wsdd2' ? 'Windows (WSDD)' : 'macOS/Linux (Avahi)';
-            
+
             container.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
                     <span style="color: var(--text-secondary);">${label}</span>
@@ -1218,7 +1224,7 @@ async function checkADStatus() {
         const badge = document.getElementById('ad-status-badge');
         const infoBox = document.getElementById('ad-info-box');
         const reqBox = document.getElementById('ad-requirements-box');
-        
+
         if (badge) {
             if (data.joined) {
                 badge.innerText = i18n('label_joined');
@@ -1238,7 +1244,7 @@ async function checkADStatus() {
 
         const healthSec = document.getElementById('ad-health-section');
         if (healthSec) healthSec.style.display = 'block';
-        
+
         if (infoBox) {
             // Показываем подробности (info) только если сервер В ДОМЕНЕ (чтобы видеть ошибки связи)
             // Или если это не стандартная ошибка отсутствия подключения
@@ -1269,26 +1275,26 @@ async function joinAD() {
     const realm = document.getElementById('ad-realm').value;
     const admin = document.getElementById('ad-admin-user').value;
     const pass = document.getElementById('ad-admin-pass').value;
-    
+
     if (!realm || !admin || !pass) {
         alert(i18n('error_fill_all'));
         return;
     }
-    
+
     if (!confirm(i18n('confirm_ad_join', { realm }))) return;
-    
+
     const btn = event.target.closest('button');
     const originalContent = btn.innerHTML;
     btn.innerHTML = `<i data-lucide="loader-2" style="width:16px; animation: spin 1s linear infinite;"></i> ${i18n('label_executing')}`;
     btn.disabled = true;
-    
+
     try {
         const res = await fetch('/api/ad/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ realm, admin, password: pass })
         });
-        
+
         if (res.ok) {
             alert(i18n('msg_ad_join_success'));
             checkADStatus();
@@ -1317,7 +1323,7 @@ async function runADHealthCheck() {
     try {
         const res = await fetch('/api/ad/health');
         const data = await res.json();
-        
+
         container.innerHTML = '';
         data.checks.forEach(check => {
             const colors = {
@@ -1377,7 +1383,7 @@ async function loadPanelAdmins() {
     table.innerHTML = '';
     admins.forEach(a => {
         const isSelf = a.username === localStorage.getItem('panel_user');
-        const deleteBtn = (a.username !== 'admin' && !isSelf) 
+        const deleteBtn = (a.username !== 'admin' && !isSelf)
             ? `<button class="btn-action btn-outline" style="color: #ef4444; padding: 4px 8px;" onclick="deletePanelAdmin('${a.username}')"><i data-lucide="trash-2" style="width:14px"></i></button>`
             : `<span style="color: var(--text-secondary); font-size: 0.7rem;">${i18n('label_protected')}</span>`;
 
@@ -1448,7 +1454,7 @@ async function loadFileManager(path = null) {
     // Рендерим хлебные крошки
     pathEl.innerHTML = '';
     const parts = currentFMPath.split('/').filter(p => p);
-    
+
     // Корень
     const rootSpan = document.createElement('span');
     rootSpan.innerHTML = '<i data-lucide="hard-drive" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> /';
@@ -1494,7 +1500,7 @@ async function loadFileManager(path = null) {
             const size = f.is_dir ? '-' : formatBytes(f.size);
             const fullPath = (currentFMPath === '/' ? '' : currentFMPath) + '/' + f.name;
             const nameClick = f.is_dir ? `onclick="loadFileManager('${fullPath.replace(/\\/g, '/')}')"` : '';
-            
+
             container.innerHTML += `
                 <tr>
                     <td ${nameClick} style="${f.is_dir ? 'cursor:pointer; color: var(--accent-blue); font-weight:600;' : ''}">
@@ -1606,7 +1612,7 @@ async function loadQuotas() {
             const softMB = Math.round(q.soft_limit / 1024);
             const hardMB = Math.round(q.hard_limit / 1024);
             const usedMB = Math.round(q.used / 1024);
-            
+
             let barColor = 'var(--accent-blue)';
             if (q.usage_pct > 80) barColor = '#f59e0b';
             if (q.usage_pct > 95) barColor = '#ef4444';
@@ -1674,17 +1680,35 @@ async function loadOpenFiles() {
     try {
         const res = await fetch('/api/openfiles');
         const data = await res.json();
-        
-        // Поддержка разных версий Samba: данные могут быть в .open_files или .locks.sharemode
+        console.log('Open files raw data:', data);
+
+        // Поддержка разных версий Samba: данные могут быть в .open_files (объект в новых версиях) или .locks.sharemode (массив)
         let files = [];
-        if (data.open_files) {
+        if (data.open_files && !Array.isArray(data.open_files)) {
+            // Новая структура: { "путь": { "opens": { "id": { ... } } } }
+            Object.keys(data.open_files).forEach(pathKey => {
+                const fileInfo = data.open_files[pathKey];
+                if (fileInfo.opens) {
+                    Object.values(fileInfo.opens).forEach(open => {
+                        files.push({
+                            ...open,
+                            servicepath: fileInfo.service_path,
+                            filename: fileInfo.filename,
+                            // Маппинг для вложенных структур
+                            Pid: open.server_id ? open.server_id.pid : open.pid,
+                            Access: open.access_mask ? (open.access_mask.text || open.access_mask.hex) : open.access_mask
+                        });
+                    });
+                }
+            });
+        } else if (data.open_files) {
             files = Array.isArray(data.open_files) ? data.open_files : Object.values(data.open_files);
         } else if (data.locks && data.locks.sharemode) {
             files = Array.isArray(data.locks.sharemode) ? data.locks.sharemode : [data.locks.sharemode];
         } else if (Array.isArray(data)) {
             files = data;
         }
-        
+
         allOpenFiles = files;
         renderOpenFiles(allOpenFiles);
     } catch (e) {
@@ -1695,17 +1719,17 @@ async function loadOpenFiles() {
 function renderOpenFiles(files) {
     const container = document.getElementById('openfiles-table-body');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     files.forEach(f => {
-        const path = f.Path || f.path || '-';
-        const name = f.Name || f.name || '';
+        const path = f.SharePath || f.servicepath || f.Path || f.path || '-';
+        const name = f.Name || f.filename || f.name || '';
         const fullPath = (name && name !== '.') ? (path + '/' + name) : path;
-        const user = f.User || f.user || f['User(ID)'] || f.username || '-';
-        const pid = f.Pid || f.PID || f.pid || '-';
-        const access = f.Access || f.access || f.RW || f.rw || '-';
-        
+        const user = f.User || f.user || f.username || f.uid || f['User(ID)'] || '-';
+        const pid = f.Pid || f.pid || f.PID || '-';
+        const access = f.Access || f.access || f.RW || f.rw || f.access_mask || '-';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
@@ -1725,11 +1749,11 @@ function renderOpenFiles(files) {
         `;
         container.appendChild(tr);
     });
-    
+
     if (files.length === 0) {
         container.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 3rem; opacity: 0.5;">${i18n('label_no_open_files') || 'Нет открытых файлов'}</td></tr>`;
     }
-    
+
     if (window.lucide) lucide.createIcons();
 }
 
@@ -1745,14 +1769,14 @@ function filterOpenFiles() {
 
 async function unlockFile(pid) {
     if (!confirm(i18n('confirm_unlock_file') || `Вы уверены, что хотите принудительно закрыть доступ для процесса PID ${pid}?`)) return;
-    
+
     try {
         const res = await fetch('/api/openfiles/close', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pid })
         });
-        
+
         if (res.ok) {
             loadOpenFiles();
         } else {
