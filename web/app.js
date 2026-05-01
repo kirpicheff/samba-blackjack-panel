@@ -120,17 +120,24 @@ async function updateStatus() {
         }
         const data = await response.json();
 
-        // Универсальное извлечение сессий
+        // Максимально безопасное извлечение данных
         let sessions = [];
-        if (data.sessions) {
-            sessions = Array.isArray(data.sessions) ? data.sessions : Object.values(data.sessions);
-        } else if (data.processes && data.processes.session) {
-            sessions = Array.isArray(data.processes.session) ? data.processes.session : [data.processes.session];
-        }
+        try {
+            if (data.sessions) {
+                sessions = Array.isArray(data.sessions) ? data.sessions : Object.values(data.sessions);
+            } else if (data.processes && data.processes.session) {
+                sessions = Array.isArray(data.processes.session) ? data.processes.session : [data.processes.session];
+            }
+        } catch (e) { console.warn('Sessions parse error:', e); }
 
-        const openFiles = (data.open_files) ? 
-            (Array.isArray(data.open_files) ? data.open_files : Object.values(data.open_files)) : 
-            ((data.locks && data.locks.sharemode) ? data.locks.sharemode : []);
+        let openFiles = [];
+        try {
+            if (data.open_files) {
+                openFiles = Array.isArray(data.open_files) ? data.open_files : Object.values(data.open_files);
+            } else if (data.locks && data.locks.sharemode) {
+                openFiles = Array.isArray(data.locks.sharemode) ? data.locks.sharemode : [data.locks.sharemode];
+            }
+        } catch (e) { console.warn('Open files parse error:', e); }
             
         const version = data.version || (data.processes && data.processes.Samba_version) || 'Samba Server';
 
