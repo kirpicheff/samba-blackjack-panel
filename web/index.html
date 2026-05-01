@@ -52,6 +52,9 @@
             <div class="nav-item" onclick="showTab('quotas', this)" data-i18n="nav_quotas">
                 <i data-lucide="hard-drive"></i> Дисковые квоты
             </div>
+            <div class="nav-item" onclick="showTab('openfiles', this)" data-i18n="nav_openfiles">
+                <i data-lucide="unlock"></i> Открытые файлы
+            </div>
             
             <div class="nav-item" onclick="logout()" style="margin-top: auto; color: #ef4444; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-bottom: 1rem;" data-i18n="nav_logout">
                 <i data-lucide="log-out"></i> Выход
@@ -649,6 +652,38 @@
                             </tr>
                         </thead>
                         <tbody id="quota-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-openfiles" class="tab-content" style="display:none;">
+            <div class="content-panel">
+                <div class="panel-header">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <h2 data-i18n="openfiles_title">Открытые файлы</h2>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="subtitle_openfiles">Мониторинг и принудительная разблокировка файлов</p>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="search-box">
+                            <input type="text" id="openfiles-search" placeholder="Поиск по файлу или пользователю..." oninput="filterOpenFiles()">
+                            <i data-lucide="search"></i>
+                        </div>
+                        <button class="btn-action btn-outline" onclick="loadOpenFiles()"><i data-lucide="refresh-cw"></i> <span data-i18n="nav_refresh">Обновить</span></button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-i18n="table_file">Файл / Путь</th>
+                                <th data-i18n="table_user">Пользователь</th>
+                                <th data-i18n="table_pid">PID</th>
+                                <th data-i18n="table_access">Доступ</th>
+                                <th style="text-align: right;" data-i18n="table_actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="openfiles-table-body"></tbody>
                     </table>
                 </div>
             </div>

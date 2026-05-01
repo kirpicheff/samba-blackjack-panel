@@ -625,3 +625,51 @@ tr:hover td {
 .m-tab-content {
     animation: slideUp 0.3s ease-out;
 }
+
+/* Search Box Styles */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 300px;
+}
+
+.search-box i, .search-box svg {
+    position: absolute;
+    left: 1.125rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    transition: all 0.2s;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    border: 2px solid var(--border-color);
+    border-radius: 14px;
+    font-size: 0.9rem;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-primary);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.search-box input:focus + i, .search-box input:focus + svg {
+    color: var(--accent-blue);
+}
+
+.search-box input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}

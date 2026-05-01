@@ -300,5 +300,14 @@
     "modal_quota_title": "Установка лимитов для {name}",
     "quota_save_success": "Квота успешно обновлена",
     "label_quota_soft": "Мягкий лимит (МБ)",
-    "label_quota_hard": "Жесткий лимит (МБ)"
+    "label_quota_hard": "Жесткий лимит (МБ)",
+    "nav_openfiles": "Открытые файлы",
+    "openfiles_title": "Открытые файлы",
+    "subtitle_openfiles": "Мониторинг и принудительная разблокировка файлов",
+    "table_file": "Файл / Путь",
+    "table_pid": "PID",
+    "table_access": "Доступ",
+    "btn_unlock": "Разблокировать",
+    "label_no_open_files": "Нет открытых файлов",
+    "confirm_unlock_file": "Вы уверены, что хотите принудительно закрыть доступ для процесса PID {pid}?"
 }

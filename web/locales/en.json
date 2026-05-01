@@ -300,5 +300,14 @@
     "modal_quota_title": "Set Limits for {name}",
     "quota_save_success": "Quota updated successfully",
     "label_quota_soft": "Soft Limit (MB)",
-    "label_quota_hard": "Hard Limit (MB)"
+    "label_quota_hard": "Hard Limit (MB)",
+    "nav_openfiles": "Open Files",
+    "openfiles_title": "Open Files",
+    "subtitle_openfiles": "Monitoring and forced unlocking of files",
+    "table_file": "File / Path",
+    "table_pid": "PID",
+    "table_access": "Access",
+    "btn_unlock": "Unlock",
+    "label_no_open_files": "No open files",
+    "confirm_unlock_file": "Are you sure you want to force close access for process PID {pid}?"
 }

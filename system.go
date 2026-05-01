@@ -465,3 +465,45 @@ func updatePathPermissionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func getOpenFilesHandler(w http.ResponseWriter, r *http.Request) {
+	cmd := exec.Command("smbstatus", "-L", "--json")
+	output, err := cmd.Output()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"locks": {"sharemode": []}}`)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(output)
+}
+
+func closeOpenFileHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		PID string `json:"pid"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad Request", 400)
+		return
+	}
+
+	if req.PID == "" {
+		http.Error(w, "PID is required", 400)
+		return
+	}
+
+	// Принудительно завершаем процесс, который держит файл
+	var cmd *exec.Cmd
+	if os.PathSeparator == '\\' {
+		cmd = exec.Command("taskkill", "/F", "/PID", req.PID)
+	} else {
+		cmd = exec.Command("kill", "-9", req.PID)
+	}
+
+	if err := cmd.Run(); err != nil {
+		http.Error(w, "Не удалось закрыть файл: "+err.Error(), 500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

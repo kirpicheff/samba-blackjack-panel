@@ -68,6 +68,10 @@ func main() {
 	http.HandleFunc("/api/quotas/list", authMiddleware(listQuotasHandler))
 	http.HandleFunc("/api/quotas/update", authMiddleware(updateQuotaHandler))
 
+	// Открытые файлы
+	http.HandleFunc("/api/openfiles", authMiddleware(getOpenFilesHandler))
+	http.HandleFunc("/api/openfiles/close", authMiddleware(closeOpenFileHandler))
+
 	port := ":8888"
 	fmt.Printf("🚀 Samba Blackjack Panel запущен на http://localhost%s\n", port)
 

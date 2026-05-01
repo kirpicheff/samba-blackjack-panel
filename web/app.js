@@ -109,6 +109,7 @@ function showTab(tabName, element) {
     if (tabName === 'automation') loadAutomationSettings();
     if (tabName === 'files') loadFileManager();
     if (tabName === 'quotas') loadQuotas();
+    if (tabName === 'openfiles') loadOpenFiles();
 }
 
 async function updateStatus() {
@@ -1639,4 +1640,96 @@ async function saveQuota() {
             alert(await res.text());
         }
     } catch (e) { console.error(e); }
+}
+
+let allOpenFiles = [];
+
+async function loadOpenFiles() {
+    const container = document.getElementById('openfiles-table-body');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/openfiles');
+        const data = await res.json();
+        
+        // В smbstatus --json данные в locks.sharemode (массив)
+        allOpenFiles = (data.locks && data.locks.sharemode) ? 
+            (Array.isArray(data.locks.sharemode) ? data.locks.sharemode : [data.locks.sharemode]) : [];
+        
+        renderOpenFiles(allOpenFiles);
+    } catch (e) {
+        console.error('Error loading open files:', e);
+    }
+}
+
+function renderOpenFiles(files) {
+    const container = document.getElementById('openfiles-table-body');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    files.forEach(f => {
+        const path = f.Path || '-';
+        const name = f.Name || '';
+        const fullPath = (name && name !== '.') ? (path + '/' + name) : path;
+        const user = f.User || f['User(ID)'] || '-';
+        const pid = f.Pid || f.PID || '-';
+        const access = f.Access || f.RW || '-';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-weight: 600; font-size: 0.85rem;">${name === '.' ? path : name}</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: 'JetBrains Mono', monospace;">${fullPath}</span>
+                </div>
+            </td>
+            <td><strong>${user}</strong></td>
+            <td><span class="badge" style="background: #f1f5f9; color: #64748b; font-family: 'JetBrains Mono', monospace;">${pid}</span></td>
+            <td><span class="mono">${access}</span></td>
+            <td style="text-align: right;">
+                <button class="btn-action btn-outline" style="color: #ef4444;" onclick="unlockFile('${pid}')">
+                    <i data-lucide="unlock" style="width: 14px;"></i> <span data-i18n="btn_unlock">Разблокировать</span>
+                </button>
+            </td>
+        `;
+        container.appendChild(tr);
+    });
+    
+    if (files.length === 0) {
+        container.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 3rem; opacity: 0.5;">${i18n('label_no_open_files') || 'Нет открытых файлов'}</td></tr>`;
+    }
+    
+    if (window.lucide) lucide.createIcons();
+}
+
+function filterOpenFiles() {
+    const query = document.getElementById('openfiles-search').value.toLowerCase();
+    const filtered = allOpenFiles.filter(f => {
+        const fullPath = (f.Path + '/' + (f.Name || '')).toLowerCase();
+        const user = String(f.User || f['User(ID)'] || '').toLowerCase();
+        return fullPath.includes(query) || user.includes(query);
+    });
+    renderOpenFiles(filtered);
+}
+
+async function unlockFile(pid) {
+    if (!confirm(i18n('confirm_unlock_file') || `Вы уверены, что хотите принудительно закрыть доступ для процесса PID ${pid}?`)) return;
+    
+    try {
+        const res = await fetch('/api/openfiles/close', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pid })
+        });
+        
+        if (res.ok) {
+            loadOpenFiles();
+        } else {
+            const err = await res.text();
+            alert(i18n('error') + ': ' + err);
+        }
+    } catch (e) {
+        alert(i18n('error') + ': ' + e);
+    }
 }
