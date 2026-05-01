@@ -14,7 +14,7 @@ fi
 # 2. Install system dependencies
 echo "📦 Installing system dependencies (Samba, Git, Quota, Discovery)..."
 apt update
-apt install -y samba samba-common-bin git quota avahi-daemon wsdd
+apt install -y samba samba-common-bin git quota avahi-daemon wsdd2
 
 # 3. Check for Go
 if ! command -v go &> /dev/null; then
@@ -67,8 +67,8 @@ EOF
 # 7. Start services
 echo "🔄 Starting services..."
 systemctl daemon-reload
-systemctl enable samba-blackjack.service avahi-daemon wsdd
-systemctl start samba-blackjack.service avahi-daemon wsdd
+systemctl enable samba-blackjack.service avahi-daemon wsdd2
+systemctl start samba-blackjack.service avahi-daemon wsdd2
 
 # 8. Final message
 echo ""

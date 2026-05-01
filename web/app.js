@@ -1079,7 +1079,7 @@ async function loadDiscoveryStatus() {
         services.forEach(s => {
             const statusClass = s.active ? 'online' : 'offline';
             const statusText = s.active ? i18n('status_active') : i18n('status_stopped');
-            const label = s.name === 'wsdd' ? 'Windows (WSDD)' : 'macOS/Linux (Avahi)';
+            const label = s.name === 'wsdd2' ? 'Windows (WSDD)' : 'macOS/Linux (Avahi)';
             
             container.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
@@ -1100,8 +1100,8 @@ async function loadDiscoveryManagement() {
 
         container.innerHTML = '';
         services.forEach(s => {
-            const label = s.name === 'wsdd' ? i18n('label_wsdd') : i18n('label_avahi');
-            const desc = s.name === 'wsdd' ? i18n('desc_wsdd') : i18n('desc_avahi');
+            const label = s.name === 'wsdd2' ? i18n('label_wsdd') : i18n('label_avahi');
+            const desc = s.name === 'wsdd2' ? i18n('desc_wsdd') : i18n('desc_avahi');
             const statusText = s.active ? i18n('status_running') : i18n('status_stopped');
             const btnAction = s.active ? 'stop' : 'start';
             const btnText = s.active ? i18n('btn_stop') : i18n('btn_start');

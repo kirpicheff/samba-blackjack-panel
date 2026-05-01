@@ -205,7 +205,7 @@ func getDiscoveryStatus(w http.ResponseWriter, r *http.Request) {
 		Active bool   `json:"active"`
 		Installed bool `json:"installed"`
 	}
-	services := []string{"wsdd", "avahi-daemon"}
+	services := []string{"wsdd2", "avahi-daemon"}
 	var results []ServiceStatus
 	for _, s := range services {
 		active := false
