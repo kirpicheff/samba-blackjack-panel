@@ -1760,8 +1760,10 @@ function renderOpenFiles(files) {
 function filterOpenFiles() {
     const query = document.getElementById('openfiles-search').value.toLowerCase();
     const filtered = allOpenFiles.filter(f => {
-        const fullPath = (f.Path + '/' + (f.Name || '')).toLowerCase();
-        const user = String(f.User || f['User(ID)'] || '').toLowerCase();
+        const path = f.SharePath || f.service_path || f.servicepath || f.Path || f.path || '';
+        const name = f.Name || f.filename || f.name || '';
+        const fullPath = (path + '/' + name).toLowerCase();
+        const user = String(f.User || f.user || f.username || f.uid || f['User(ID)'] || '').toLowerCase();
         return fullPath.includes(query) || user.includes(query);
     });
     renderOpenFiles(filtered);
