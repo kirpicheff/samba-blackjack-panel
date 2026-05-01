@@ -1675,10 +1675,17 @@ async function loadOpenFiles() {
         const res = await fetch('/api/openfiles');
         const data = await res.json();
         
-        // В smbstatus --json данные в locks.sharemode (массив)
-        allOpenFiles = (data.locks && data.locks.sharemode) ? 
-            (Array.isArray(data.locks.sharemode) ? data.locks.sharemode : [data.locks.sharemode]) : [];
+        // Поддержка разных версий Samba: данные могут быть в .open_files или .locks.sharemode
+        let files = [];
+        if (data.open_files) {
+            files = Array.isArray(data.open_files) ? data.open_files : Object.values(data.open_files);
+        } else if (data.locks && data.locks.sharemode) {
+            files = Array.isArray(data.locks.sharemode) ? data.locks.sharemode : [data.locks.sharemode];
+        } else if (Array.isArray(data)) {
+            files = data;
+        }
         
+        allOpenFiles = files;
         renderOpenFiles(allOpenFiles);
     } catch (e) {
         console.error('Error loading open files:', e);
@@ -1692,12 +1699,12 @@ function renderOpenFiles(files) {
     container.innerHTML = '';
     
     files.forEach(f => {
-        const path = f.Path || '-';
-        const name = f.Name || '';
+        const path = f.Path || f.path || '-';
+        const name = f.Name || f.name || '';
         const fullPath = (name && name !== '.') ? (path + '/' + name) : path;
-        const user = f.User || f['User(ID)'] || '-';
-        const pid = f.Pid || f.PID || '-';
-        const access = f.Access || f.RW || '-';
+        const user = f.User || f.user || f['User(ID)'] || f.username || '-';
+        const pid = f.Pid || f.PID || f.pid || '-';
+        const access = f.Access || f.access || f.RW || f.rw || '-';
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
