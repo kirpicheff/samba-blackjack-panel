@@ -24,7 +24,6 @@
     "stat_samba_version": "Versión de Samba",
     "stat_network_discovery": "Descubrimiento de Red",
     "stat_system_core": "Núcleo del Sistema",
-    "stat_up_from_last_hour": "↑ 12% desde la última hora",
     "disk_usage_title": "Uso del Disco",
     "sessions_title": "Conexiones Actuales",
     "btn_apply": "Aplicar Cambios",

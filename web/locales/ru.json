@@ -24,7 +24,6 @@
     "stat_samba_version": "Версия Samba",
     "stat_network_discovery": "Сетевое обнаружение",
     "stat_system_core": "Ядро системы",
-    "stat_up_from_last_hour": "↑ 12% с прошлого часа",
     "disk_usage_title": "Использование дискового пространства",
     "sessions_title": "Текущие подключения",
     "btn_apply": "Применить изменения",

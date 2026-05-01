@@ -24,7 +24,6 @@
     "stat_samba_version": "Samba 版本",
     "stat_network_discovery": "网络发现",
     "stat_system_core": "系统内核",
-    "stat_up_from_last_hour": "较上小时 ↑ 12%",
     "disk_usage_title": "磁盘空间使用情况",
     "sessions_title": "当前连接",
     "btn_apply": "应用更改",

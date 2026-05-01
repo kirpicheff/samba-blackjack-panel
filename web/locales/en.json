@@ -24,7 +24,6 @@
     "stat_samba_version": "Samba Version",
     "stat_network_discovery": "Network Discovery",
     "stat_system_core": "System Core",
-    "stat_up_from_last_hour": "↑ 12% since last hour",
     "disk_usage_title": "Disk Usage",
     "sessions_title": "Current Connections",
     "btn_apply": "Apply Changes",

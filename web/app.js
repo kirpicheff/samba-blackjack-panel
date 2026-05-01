@@ -1,3 +1,26 @@
+// Глобальный перехватчик fetch для защиты от CSRF (Double Submit Cookie)
+const originalFetch = window.fetch;
+window.fetch = function() {
+    let [resource, config] = arguments;
+    if (typeof resource === 'string' && resource.startsWith('/api/')) {
+        config = config || {};
+        config.headers = config.headers || {};
+        
+        const csrfToken = document.cookie.split('; ')
+            .find(row => row.startsWith('csrf_token='))
+            ?.split('=')[1];
+
+        if (csrfToken) {
+            if (config.headers instanceof Headers) {
+                config.headers.set('X-CSRF-Token', csrfToken);
+            } else {
+                config.headers['X-CSRF-Token'] = csrfToken;
+            }
+        }
+    }
+    return originalFetch(resource, config);
+};
+
 let i18n_data = {};
 let currentLang = localStorage.getItem('panel_lang') || 'ru';
 let currentFMPath = '/';
